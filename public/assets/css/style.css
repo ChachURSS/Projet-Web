@@ -1,0 +1,45 @@
+body {
+    background-color: #FFEBCD;
+    color: #ffffff;
+}
+
+body.navbar {
+    background-color: #FFEBCD !important;
+}
+
+#list {
+    position: fixed;
+}
+
+.carousel {
+    position: relative;
+    max-width: 1200px;
+    /*background-color: #ffffff;*/
+    margin: auto;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10%;
+    height: auto;
+    opacity: 0.8;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    width: 3rem;
+    height: 3rem;
+    color: black;
+    background-color: black;
+    border-radius: 30%;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+}
+
+
