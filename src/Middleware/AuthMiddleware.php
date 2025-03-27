@@ -10,6 +10,8 @@ use Slim\Routing\RouteContext;
 class AuthMiddleware
 {
     public function __invoke(Request $request, Handler $handler): ResponseInterface {
+
+
         $session = $_SESSION ?? [];
 
         $uri = $request->getUri()->getPath();
