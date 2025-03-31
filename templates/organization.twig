@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="fr">
 <head>
@@ -8,68 +7,172 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/css/style.css">
     <script defer src="/assets/js/script.js"></script>
+    <script defer>
+        function filterMembers() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const rows = document.querySelectorAll('#membersTable tbody tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                const prenom = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const mail = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const role = row.getAttribute('data-role');
+
+                const matchesSearch = name.includes(searchInput) || prenom.includes(searchInput) || mail.includes(searchInput);
+                const matchesRole = roleFilter === '' || role === roleFilter;
+
+                if (matchesSearch && matchesRole) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('noResults').style.display = (visibleCount === 0) ? '' : 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('searchInput').addEventListener('input', filterMembers);
+            document.getElementById('roleFilter').addEventListener('change', filterMembers);
+        });
+    </script>
 </head>
 <body>
-    {% include "navbar.twig" %}
+{% include "navbar.twig" %}
 
-    <div class="container mt-5">
-        <div class="card mb-4 shadow-sm">
-            <div class="row g-0">
-                <div class="col-md-4 d-flex justify-content-center align-items-center bg-light">
-                    <img src="{{ organization.path_to_icon }}" alt="Logo de l'organisation" class="img-fluid rounded shadow-sm" style="max-width: 200px; max-height: 200px; object-fit: contain;">
-                </div>
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h3 class="card-title">{{ organization.name }}</h3>
-                                <p class="card-text text-muted">{{ organization.description }}</p>
-                            </div>
-                            {% if role == 0 %}
-                                <a href="/organization/edit" class="btn btn-sm btn-outline-secondary">Modifier</a>
-                            {% endif %}
+<div class="container mt-5">
+    <div class="card mb-4 shadow-sm">
+        <div class="row g-0">
+            <div class="col-md-4 d-flex justify-content-center align-items-center bg-light">
+                <img src="{{ organization.path_to_icon ?: '/assets/logo/cats.png' }}"
+                onerror="this.onerror=null; this.src='/assets/logo/cats.png';"
+                alt="Logo de l'organisation"
+                class="rounded-circle shadow-sm"
+                style="width: 200px; height: 200px; object-fit: cover; object-position: center;">
+            </div>
+
+            <div class="col-md-8">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="card-title">{{ organization.name }}</h3>
+                            <p class="card-text text-muted" style="white-space: pre-wrap; word-break: break-word;">
+                                {{ organization.description }}
+                            </p>
                         </div>
+                        {% if role == 0 %}
+                        <a href="/organization/edit" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-
-        {% if role == 0 or role == 1 %}
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4>Gestion des membres</h4>
-                <a href="/organization/members" class="btn btn-outline-primary">Modifier les membres</a>
-            </div>
-
-            <form method="POST" action="/organization/add-user" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="nom" class="form-control" placeholder="Nom" required>
-                </div>
-                <div class="col-md-4">
-                    <input type="text" name="prenom" class="form-control" placeholder="Prénom" required>
-                </div>
-                <div class="col-md-4">
-                    <input type="email" name="mail" class="form-control" placeholder="Email" required>
-                </div>
-                {% if role == 0 %}
-                <div class="col-md-3">
-                    <select name="role" class="form-select">
-                        <option value="1">Pilote</option>
-                        <option value="2">Élève</option>
-                    </select>
-                </div>
-                {% else %}
-                <input type="hidden" name="role" value="2">
-                {% endif %}
-                <div class="col-md-3">
-                    <input type="password" name="password" class="form-control" placeholder="Mot de passe" required>
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">Ajouter</button>
-                </div>
-            </form>
-        {% endif %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% if role in [0, 1] %}
+    <div class="accordion mb-4" id="accordionAddMember">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingAdd">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdd" aria-expanded="false" aria-controls="collapseAdd">
+                    Ajouter un membre
+                </button>
+            </h2>
+            <div id="collapseAdd" class="accordion-collapse collapse" aria-labelledby="headingAdd" data-bs-parent="#accordionAddMember">
+                <div class="accordion-body">
+                    <form method="POST" action="/organization/add-user" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="nom" class="form-control" placeholder="Nom" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="prenom" class="form-control" placeholder="Prénom" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="email" name="mail" class="form-control" placeholder="Email" required>
+                        </div>
+                        <div class="col-md-3">
+                            {% if role == 0 %}
+                                <select name="role" class="form-select" required>
+                                    <option value="1">Pilote</option>
+                                    <option value="2">Élève</option>
+                                </select>
+                            {% elseif role == 1 %}
+                                <select class="form-select" disabled>
+                                    <option value="2" selected>Élève</option>
+                                </select>
+                                <input type="hidden" name="role" value="2">
+                            {% elseif role == 2 %}
+                                <select class="form-select" disabled>
+                                    <option value="2" selected>Élève</option>
+                                </select>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <input type="password" name="password" class="form-control" placeholder="Mot de passe" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <h5 class="mb-0">Membres de l'organisation</h5>
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control" id="searchInput" placeholder="Rechercher...">
+                <select id="roleFilter" class="form-select">
+                    <option value="">Tous</option>
+                    {% if role == 0 %}
+                        <option value="admin">Admin</option>
+                        <option value="pilote">Pilote</option>
+                        <option value="eleve">Élève</option>
+                    {% elseif role == 1 %}
+                        <option value="eleve">Élève</option>
+                    {% elseif role == 2 %}
+                        <option value="eleve">Élève</option>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table id="membersTable" class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for member in members %}
+                    <tr data-role="{% if member.role == 0 %}admin{% elseif member.role == 1 %}pilote{% else %}eleve{% endif %}">
+                        <td>{{ member.last_name }}</td>
+                        <td>{{ member.name }}</td>
+                        <td>{{ member.mail }}</td>
+                        <td>{% if member.role == 0 %}Admin{% elseif member.role == 1 %}Pilote{% else %}Élève{% endif %}</td>
+                        <td>
+                            {% if role == 0 or (role == 1 and (member.role == 2 or member.id_user == current_user_id)) or (role == 2 and member.id_user == current_user_id) %}
+                            <a href="/organization/member/{{ member.id_user }}/edit" class="btn btn-sm btn-outline-primary">Modifier</a>
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div id="noResults" class="text-center text-muted my-3" style="display: none;">Aucun membre trouvé</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
