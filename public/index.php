@@ -6,8 +6,9 @@ use Slim\Factory\AppFactory;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
 use Dotenv\Dotenv;
-
-use App\Middleware\AuthMiddleware;
+use Slim\Exception\HttpNotFoundException;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 require __DIR__ . '/../vendor/autoload.php';
 
