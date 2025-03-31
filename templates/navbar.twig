@@ -1,0 +1,33 @@
+
+<nav class="navbar navbar-expand-lg bg-body-tertiary navbar-light bs-light">
+    <div class="container">
+        <a class="navbar-brand"><img src="/assets/logo/cat.png" alt="catlogo" width="50" height="50"></a>
+        <a class="navbar-brand" href="#">EasyStage</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="navbarDropdown">Profil</a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="/organization">Organisation</a></li>
+                        <li><a class="dropdown-item" href="#">Stages</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout">Se déconnecter</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item"><a class="nav-link active" href="/home">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/users">Link</a></li>
+                <li class="nav-item"><a class="nav-link disabled" aria-disabled="true">Disabled</a></li>
+            </ul>
+
+            <form class="d-flex align-items-center" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-success me-3" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</nav>

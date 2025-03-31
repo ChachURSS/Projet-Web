@@ -4,7 +4,7 @@ return function (\DI\ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
         'db' => [
             'host' => 'localhost',
-            'dbname' => 'es_datas',
+            'dbname' => 'easy_stage_web',
             'user' => 'root',
             'pass' => 'password'
         ],

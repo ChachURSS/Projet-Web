@@ -29,13 +29,13 @@ class AuthController
     {
         $data = $request->getParsedBody();
 
-        $organisationName = trim($data['organisation'] ?? '');
-        $nom = trim($data['nom'] ?? '');
-        $prenom = trim($data['prenom'] ?? '');
+        $organizationName = trim($data['organisation'] ?? '');
+        $lastName = trim($data['nom'] ?? '');
+        $firstName = trim($data['prenom'] ?? '');
         $email = trim($data['email'] ?? '');
-        $mdp = trim($data['mdp'] ?? '');
+        $password = trim($data['mdp'] ?? '');
 
-        if (!$organisationName || !$nom || !$prenom || !$email || !$mdp) {
+        if (!$organizationName || !$lastName || !$firstName || !$email || !$password) {
             return $this->twig->render($response, 'register.twig', [
                 'error' => 'Tous les champs sont requis.'
             ]);
@@ -47,25 +47,36 @@ class AuthController
             $_ENV['DB_PASS']
         );
 
-        $stmtOrg = $pdo->prepare("INSERT INTO organisation (nom, date_creation) VALUES (:nom, NOW())");
-        $stmtOrg->execute(['nom' => $organisationName]);
-        $organisationId = $pdo->lastInsertId();
+        // Création de l'organisation
+        $stmtOrg = $pdo->prepare("INSERT INTO organizations (name, description) VALUES (:name, '')");
+        $stmtOrg->execute(['name' => $organizationName]);
+        $orgId = $pdo->lastInsertId();
 
-        $hashedPassword = password_hash($mdp, PASSWORD_DEFAULT);
+        // Hachage du mot de passe et génération du token
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $token = bin2hex(random_bytes(25)); // 50 caractères
+        $role = 0; // 0 = admin
 
-        $stmtAdmin = $pdo->prepare("
-            INSERT INTO admins (mail, mdp, nom, prenom, id_organisation)
-            VALUES (:mail, :mdp, :nom, :prenom, :id_organisation)
+        // Insertion dans users
+        $stmtUser = $pdo->prepare("
+            INSERT INTO users (token, mail, password, name, last_name, role, id_organization)
+            VALUES (:token, :mail, :password, :name, :last_name, :role, :id_organization)
         ");
-        $stmtAdmin->execute([
+
+        $stmtUser->execute([
+            'token' => $token,
             'mail' => $email,
-            'mdp' => $hashedPassword,
-            'nom' => $nom,
-            'prenom' => $prenom,
-            'id_organisation' => $organisationId
+            'password' => $hashedPassword,
+            'name' => $firstName,
+            'last_name' => $lastName,
+            'role' => $role,
+            'id_organization' => $orgId
         ]);
 
-        return $response->withHeader('Location', '/login')->withStatus(302);
+        // Stocker le token dans la session
+        $_SESSION['token'] = $token;
+
+        return $response->withHeader('Location', '/home')->withStatus(302);
     }
 
     public function login(Request $request, Response $response): Response
@@ -80,45 +91,19 @@ class AuthController
             $_ENV['DB_PASS']
         );
 
-        $user = null;
-        $statut = null;
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE mail = :email");
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch();
 
-        $tables = [
-            'admins' => 'id_admin',
-            'pilotes' => 'id_pilote',
-            'eleves' => 'id_eleve',
-        ];
+        if ($user && password_verify($password, $user['password'])) {
+            // Authentification réussie, stocker le token
+            $_SESSION['token'] = $user['token'];
 
-        foreach ($tables as $table => $idColumn) {
-            $stmt = $pdo->prepare("SELECT * FROM $table WHERE mail = :email");
-            $stmt->execute(['email' => $email]);
-            $result = $stmt->fetch();
-
-            if ($result && password_verify($password, $result['mdp'])) {
-                $user = $result;
-                $statut = rtrim($table, 's');
-                break;
-            }
-        }
-
-        if ($user) {
-            $_SESSION['user'] = [
-                'id' => $user[$idColumn],
-                'nom' => $user['nom'],
-                'prenom' => $user['prenom'],
-                'email' => $user['mail'],
-                'statut' => $statut,
-                'id_organisation' => $user['id_organisation'] ?? null,
-            ];
-
-            return $response
-                ->withHeader('Location', '/')
-                ->withStatus(302);
+            return $response->withHeader('Location', '/home')->withStatus(302);
         }
 
         return $this->twig->render($response, 'login.twig', [
-            'error' => 'Email ou mot de passe incorrect.'
+            'error' => 'Identifiants incorrects.'
         ]);
     }
-
 }
