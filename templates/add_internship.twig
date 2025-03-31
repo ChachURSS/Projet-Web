@@ -1,0 +1,28 @@
+
+{% block content %}
+    <h2>Ajouter un Stage</h2>
+    <form action="/internships/add" method="post" enctype="multipart/form-data">
+        <label for="title">Titre :</label>
+        <input type="text" id="title" name="title" required>
+
+        <label for="description">Description :</label>
+        <textarea id="description" name="description"></textarea>
+
+        <label for="status">Status :</label>
+        <input type="number" id="status" name="status" required>
+
+        <label for="path_to_icon">Icône :</label>
+        <input type="file" id="path_to_icon" name="path_to_icon" accept="image/*">
+
+        <label for="bdate">Date de début :</label>
+        <input type="date" id="bdate" name="bdate" required>
+
+        <label for="edate">Date de fin :</label>
+        <input type="date" id="edate" name="edate" required>
+
+        <label for="id_company">ID Entreprise :</label>
+        <input type="number" id="id_company" name="id_company" required>
+
+        <button type="submit">Ajouter</button>
+    </form>
+{% endblock %}

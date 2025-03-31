@@ -252,7 +252,72 @@ return function (App $app) {
             ->withHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
     });
     
+    // Route GET : Afficher les stages
+    $app->get('/internships', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
 
+        $stmt = $pdo->query("SELECT * FROM internships ORDER BY bdate DESC");
+        $internships = $stmt->fetchAll();
+
+        return $view->render($response, 'internships.twig', ['internships' => $internships]);
+    });
+
+    // Route GET : Afficher le formulaire d'ajout de stage
+    $app->get('/internships/add', function (Request $request, Response $response, $args) {
+        $view = Twig::fromRequest($request);
+        return $view->render($response, 'add_internship.twig');
+    });
+
+    // Route POST : Ajouter un stage avec gestion de l'upload d'icône
+    $app->post('/internships/add', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $data = $request->getParsedBody();
+
+        $upload_dir = __DIR__ . '/../public/uploads/';
+        $public_path_prefix = '/uploads/';
+        $path_to_icon = null;
+
+        if (!empty($_FILES['path_to_icon']['tmp_name'])) {
+            $file = $_FILES['path_to_icon'];
+            $mime = mime_content_type($file['tmp_name']);
+
+            if (str_starts_with($mime, 'image/')) {
+                $base_name = pathinfo($file['name'], PATHINFO_FILENAME);
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base_name);
+                $filename = $safe_name . '.' . $extension;
+                $i = 1;
+
+                while (file_exists($upload_dir . $filename)) {
+                    $filename = $safe_name . '_' . $i . '.' . $extension;
+                    $i++;
+                }
+
+                $target_path = $upload_dir . $filename;
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $path_to_icon = $public_path_prefix . $filename;
+                }
+            }
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, id_company)
+            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :id_company)
+        ");
+
+        $stmt->execute([
+            ':title' => $data['title'],
+            ':description' => $data['description'],
+            ':status' => $data['status'],
+            ':path_to_icon' => $path_to_icon,
+            ':bdate' => $data['bdate'],
+            ':edate' => $data['edate'],
+            ':id_company' => $data['id_company']
+        ]);
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
 };
 
 

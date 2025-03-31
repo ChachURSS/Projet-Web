@@ -1,0 +1,37 @@
+
+{% block content %}
+    <h2>Liste des Stages</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Titre</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Icône</th>
+                <th>Date de début</th>
+                <th>Date de fin</th>
+                <th>Entreprise</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for internship in internships %}
+                <tr>
+                    <td>{{ internship.title }}</td>
+                    <td>{{ internship.description }}</td>
+                    <td>{{ internship.status }}</td>
+                    <td>
+                        {% if internship.path_to_icon %}
+                            <img src="{{ internship.path_to_icon }}" alt="Icône" style="max-width: 50px; max-height: 50px;">
+                        {% else %}
+                            Pas d'icône
+                        {% endif %}
+                    </td>
+                    <td>{{ internship.bdate }}</td>
+                    <td>{{ internship.edate }}</td>
+                    <td>{{ internship.id_company }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
