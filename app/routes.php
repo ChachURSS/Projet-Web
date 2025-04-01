@@ -89,27 +89,6 @@ return function (App $app) {
         ]);
     });
 
-    $app->get('/companies', function ($request, $response, $args) {
-    $pdo = $this->get(PDO::class);
-    $view = Twig::fromRequest($request);
-
-    if (!isset($_SESSION['token'])) {
-        return $response->withHeader('Location', '/login')->withStatus(302);
-    }
-
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
-    $stmt->execute(['token' => $_SESSION['token']]);
-    $user = $stmt->fetch();
-
-    if (!$user) {
-        return $response->withHeader('Location', '/login')->withStatus(302);
-    }
-
-    return $view->render($response, 'entreprise.twig', [
-        'role' => $user['role']
-    ]);
-});
-
     
     // Route GET : page d'édition d'organisation (admins uniquement)
     $app->get('/organization/edit', function ($request, $response, $args) {
@@ -274,6 +253,127 @@ return function (App $app) {
             ->withHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
     });
 
+    $app->get('/companies', function ($request, $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+
+        if (!isset($_SESSION['token'])) {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+        $stmt->execute(['token' => $_SESSION['token']]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        // Récupérer les entreprises
+        $stmtCompanies = $pdo->query("SELECT * FROM companies");
+        $companies = $stmtCompanies->fetchAll();
+
+        return $view->render($response, 'entreprise.twig', [
+            'companies' => $companies,
+            'role' => $user['role']
+        ]);
+});
+    $app->get('/company/edit', function ($request, $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+        $stmt->execute(['token' => $_SESSION['token']]);
+        $user = $stmt->fetch();
+
+        if (!$user || $user['role'] != 0) {
+            return $response->withHeader('Location', '/company')->withStatus(302);
+        }
+
+        $stmtOrg = $pdo->prepare("SELECT * FROM companies WHERE id_company = :id");
+        //$stmtOrg->execute(['id' => $user['id_company']]);
+        $company = $stmtOrg->fetch();
+
+        return $view->render($response, 'entreprise_edit.twig', [
+            'company' => $company
+        ]);
+    });
+
+
+    $app->post('/company/update', function ($request, $response, $args) {
+        $pdo = $this->get(PDO::class);
+    
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+        $stmt->execute(['token' => $_SESSION['token']]);
+        $user = $stmt->fetch();
+    
+        if (!$user || $user['role'] != 0) {
+            return $response->withHeader('Location', '/company')->withStatus(403);
+        }
+    
+        $data = $request->getParsedBody();
+        $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
+        $delete_logo = isset($data['delete_logo']);
+    
+        $stmtOrg = $pdo->prepare("SELECT path_to_icon FROM companies WHERE id_company = :id");
+        //$stmtOrg->execute(['id' => $user['id_company']]);
+        $comp = $stmtOrg->fetch();
+        $old_logo = $comp['path_to_icon'];
+    
+        $upload_dir = __DIR__ . '/../public/uploads/';
+        $public_path_prefix = '/uploads/';
+        $new_logo_path = null;
+    
+        if (!empty($_FILES['logo']['tmp_name'])) {
+            $file = $_FILES['logo'];
+            $mime = mime_content_type($file['tmp_name']);
+    
+            if (str_starts_with($mime, 'image/')) {
+                $base_name = pathinfo($file['name'], PATHINFO_FILENAME);
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base_name);
+                $filename = $safe_name . '.' . $extension;
+                $i = 1;
+    
+                while (file_exists($upload_dir . $filename)) {
+                    $filename = $safe_name . '_' . $i . '.' . $extension;
+                    $i++;
+                }
+    
+                $target_path = $upload_dir . $filename;
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $new_logo_path = $public_path_prefix . $filename;
+    
+                    if ($old_logo && file_exists(__DIR__ . '/../public' . $old_logo)) {
+                        unlink(__DIR__ . '/../public' . $old_logo);
+                    }
+                }
+            }
+        }
+    
+        if ($delete_logo && $old_logo && file_exists(__DIR__ . '/../public' . $old_logo)) {
+            unlink(__DIR__ . '/../public' . $old_logo);
+            $new_logo_path = null;
+        }
+    
+        $query = "UPDATE companies SET name = :name, description = :description";
+        $params = ['name' => $name, 'description' => $description, 'id' => $user['id_company']];
+    
+        if (!is_null($new_logo_path)) {
+            $query .= ", path_to_icon = :icon";
+            $params['icon'] = $new_logo_path;
+        } elseif ($delete_logo) {
+            $query .= ", path_to_icon = NULL";
+        }
+    
+        $query .= " WHERE id_company = :id";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+    
+        return $response->withHeader('Location', '/company')->withStatus(302);
+    });
+    
 
 // Afficher le formulaire d'ajout d'une entreprise
     $app->get('/company/create', function ($request, $response, $args) {
