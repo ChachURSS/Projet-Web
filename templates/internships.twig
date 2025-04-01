@@ -14,6 +14,7 @@
                     <th scope="col">Date de début</th>
                     <th scope="col">Date de fin</th>
                     <th scope="col">Entreprise</th>
+                    <th scope="col">Tags</th>
                     <th scope="col">Actions</th>
                 </tr>
             </thead>    
@@ -40,6 +41,13 @@
                         <td>{{ internship.edate }}</td>
                         <td>{{ internship.company_name }}</td>
                         <td>
+                            {% if internship.tags %}
+                                {{ internship.tags | join(', ') }}
+                            {% else %}
+                                <span class="text-muted">Aucun tag</span>
+                            {% endif %}
+                        </td>
+                        <td>
                             <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
                             <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
@@ -50,4 +58,9 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Bouton circulaire bleu -->
+    <a href="/internships/add" class="btn btn-primary rounded-circle position-fixed" style="bottom: 20px; right: 20px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+        +
+    </a>
 {% endblock %}

@@ -86,7 +86,7 @@ class AuthController
         $password = $data['mdp'] ?? '';
 
         $pdo = new \PDO(
-            "mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']};charset=utf8mb4",
+            "mysql:host={$_ENV['DB_HOST']};port=3306;dbname={$_ENV['DB_NAME']};charset=utf8mb4",
             $_ENV['DB_USER'],
             $_ENV['DB_PASS']
         );

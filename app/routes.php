@@ -634,7 +634,18 @@ return function (App $app) {
             JOIN companies ON internships.id_company = companies.id_company 
             ORDER BY bdate DESC
         ");
-        $internships = $stmt->fetchAll();
+        $internships = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($internships as &$internship) {
+            $stmtTags = $pdo->prepare("
+                SELECT int_tags.name 
+                FROM have_itags 
+                JOIN int_tags ON have_itags.id_itag = int_tags.id_itag 
+                WHERE have_itags.id_internship = :id_internship
+            ");
+            $stmtTags->execute([':id_internship' => $internship['id_internship']]);
+            $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
+        }
 
         return $view->render($response, 'internships.twig', ['internships' => $internships]);
     });
@@ -700,7 +711,6 @@ return function (App $app) {
             INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, post_date, id_company)
             VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :post_date, :id_company)
         ");
-
         $stmt->execute([
             ':title' => $data['title'],
             ':description' => $data['description'],
@@ -712,7 +722,56 @@ return function (App $app) {
             ':id_company' => $id_company
         ]);
 
+        $id_internship = $pdo->lastInsertId();
+
+        // Gestion des tags
+        if (!empty($data['tags'])) {
+            $tags = array_map('trim', explode(',', $data['tags']));
+            foreach ($tags as $tag) {
+                if (!empty($tag)) {
+                    // Vérifier si le tag existe déjà
+                    $stmt = $pdo->prepare("SELECT id_itag FROM int_tags WHERE name = :name");
+                    $stmt->execute([':name' => $tag]);
+                    $existingTag = $stmt->fetch();
+
+                    if ($existingTag) {
+                        $id_itag = $existingTag['id_itag'];
+                    } else {
+                        // Ajouter le tag s'il n'existe pas
+                        $stmt = $pdo->prepare("INSERT INTO int_tags (name) VALUES (:name)");
+                        $stmt->execute([':name' => $tag]);
+                        $id_itag = $pdo->lastInsertId();
+                    }
+
+                    // Lier le tag à l'annonce
+                    $stmt = $pdo->prepare("INSERT INTO have_itags (id_itag, id_internship) VALUES (:id_itag, :id_internship)");
+                    $stmt->execute([
+                        ':id_itag' => $id_itag,
+                        ':id_internship' => $id_internship
+                    ]);
+                }
+            }
+        }
+
         return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    // Route GET : Suggestions de tags pour l'autocomplétion
+    $app->get('/tags/suggestions', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $queryParams = $request->getQueryParams();
+        $query = trim($queryParams['query'] ?? '');
+
+        if (!empty($query)) {
+            $stmt = $pdo->prepare("SELECT name FROM int_tags WHERE name LIKE :query LIMIT 10");
+            $stmt->execute([':query' => $query . '%']);
+            $tags = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $tags = [];
+        }
+
+        $response->getBody()->write(json_encode($tags));
+        return $response->withHeader('Content-Type', 'application/json');
     });
 
     // Route POST : Supprimer une offre
