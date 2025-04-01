@@ -20,7 +20,7 @@ return function (\DI\ContainerBuilder $containerBuilder) {
 
             $dsn = "mysql:host=$host;dbname=$db;port=3306;charset=utf8mb4";
             $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Active les exceptions pour les erreurs SQL
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ];
@@ -32,9 +32,11 @@ return function (\DI\ContainerBuilder $containerBuilder) {
             return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
         },
 
-        // Ajouter la d�finition pour le service 'view'
-        'view' => function (ContainerInterface $c) {
-            return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
+        // Ajouter la définition pour le service 'view'
+        'view' => function () {
+            return Twig::create(__DIR__ . '/../templates', [
+                'cache' => false, // Désactive le cache Twig
+            ]);
         },
 
     ]);

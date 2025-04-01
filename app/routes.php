@@ -805,6 +805,23 @@ return function (App $app) {
         $stmt->execute([':id' => $id_internship]);
         $internship = $stmt->fetch();
 
+        if (!$internship) {
+            return $response->withHeader('Location', '/internships')->withStatus(404);
+        }
+
+        // Récupérer les tags associés à l'offre
+        $stmtTags = $pdo->prepare("
+            SELECT int_tags.name 
+            FROM have_itags 
+            JOIN int_tags ON have_itags.id_itag = int_tags.id_itag 
+            WHERE have_itags.id_internship = :id_internship
+        ");
+        $stmtTags->execute([':id_internship' => $id_internship]);
+        $tags = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
+
+        // Ajouter les tags formatés à l'internship
+        $internship['tags'] = $tags ? implode(', ', $tags) : '';
+
         return $view->render($response, 'edit_internship.twig', ['internship' => $internship]);
     });
 

@@ -4,6 +4,7 @@
     <div class="container mt-4">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <h2 class="text-center mb-4">Modifier une annonce de stage</h2>
+
         <form method="POST" action="/internships/edit/{{ internship.id_internship }}" enctype="multipart/form-data">
             <div class="mb-3">
                 <label for="title" class="form-label">Titre</label>
@@ -38,7 +39,7 @@
             </div>
             <div class="mb-3">
                 <label for="tags" class="form-label">Compétences (tags)</label>
-                <input type="text" class="form-control" id="tags" name="tags" value="{{ internship.tags | join(', ') }}" placeholder="Ajoutez des tags séparés par des virgules" autocomplete="off">
+                <input type="text" class="form-control" id="tags" name="tags" value="{{ internship.tags }}" placeholder="Ajoutez des tags séparés par des virgules" autocomplete="off">
                 <small class="form-text text-muted">Exemple : PHP, JavaScript, SQL</small>
                 <ul class="list-group mt-2" id="tags-suggestions" style="display: none;"></ul>
             </div>
