@@ -1,37 +1,47 @@
+{% include "navbar.twig" %}
 
 {% block content %}
-    <h2>Liste des Stages</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Titre</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Icône</th>
-                <th>Date de début</th>
-                <th>Date de fin</th>
-                <th>Entreprise</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for internship in internships %}
+    <div class="container mt-4">
+        <h2 class="text-center mb-4">Liste des Stages</h2>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <table class="table table-hover table-bordered">
+            <thead class="thead-dark">
                 <tr>
-                    <td>{{ internship.title }}</td>
-                    <td>{{ internship.description }}</td>
-                    <td>{{ internship.status }}</td>
-                    <td>
-                        {% if internship.path_to_icon %}
-                            <img src="{{ internship.path_to_icon }}" alt="Icône" style="max-width: 50px; max-height: 50px;">
-                        {% else %}
-                            Pas d'icône
-                        {% endif %}
-                    </td>
-                    <td>{{ internship.bdate }}</td>
-                    <td>{{ internship.edate }}</td>
-                    <td>{{ internship.id_company }}</td>
+                    <th scope="col">Titre</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Icône</th>
+                    <th scope="col">Date de début</th>
+                    <th scope="col">Date de fin</th>
+                    <th scope="col">Entreprise</th>
+                    <th scope="col">Actions</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>    
+            <tbody>
+                {% for internship in internships %}
+                    <tr>
+                        <td>{{ internship.title }}</td>
+                        <td>{{ internship.description }}</td>
+                        <td>{{ internship.status }}</td>
+                        <td>
+                            {% if internship.path_to_icon %}
+                                <img src="{{ internship.path_to_icon }}" alt="Icône" class="img-thumbnail" style="max-width: 50px; max-height: 50px;">
+                            {% else %}
+                                <span class="text-muted">Pas d'icône</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ internship.bdate }}</td>
+                        <td>{{ internship.edate }}</td>
+                        <td>{{ internship.company_name }}</td>
+                        <td>
+                            <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
+                            <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}
