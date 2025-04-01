@@ -88,6 +88,28 @@ return function (App $app) {
             'role' => $user['role']
         ]);
     });
+
+    $app->get('/companies', function ($request, $response, $args) {
+    $pdo = $this->get(PDO::class);
+    $view = Twig::fromRequest($request);
+
+    if (!isset($_SESSION['token'])) {
+        return $response->withHeader('Location', '/login')->withStatus(302);
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+    $stmt->execute(['token' => $_SESSION['token']]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        return $response->withHeader('Location', '/login')->withStatus(302);
+    }
+
+    return $view->render($response, 'entreprise.twig', [
+        'role' => $user['role']
+    ]);
+});
+
     
     // Route GET : page d'édition d'organisation (admins uniquement)
     $app->get('/organization/edit', function ($request, $response, $args) {
@@ -251,7 +273,35 @@ return function (App $app) {
             ->withHeader('Content-Type', mime_content_type($filepath))
             ->withHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
     });
-    
+
+
+// Afficher le formulaire d'ajout d'une entreprise
+    $app->get('/company/create', function ($request, $response, $args) {
+        return $this->get('view')->render($response, 'entreprise_add.twig');
+    })->setName('company.create');
+
+    // Traiter l'ajout d'une entreprise
+    $app->post('/company/add', function ($request, $response, $args) {
+        $data = $request->getParsedBody();
+        $name = $data['name'];
+        $description = $data['description'];
+        $icon_path = $data['icon_path'];
+        $icon_link = $data['icon_link'];
+
+        $sql = "INSERT INTO companies (name, description, icon_path, icon_link) VALUES (:name, :description, :icon_path, :icon_link)";
+        $stmt = $this->get('db')->prepare($sql);
+        $stmt->execute([
+            ':name' => $name,
+            ':description' => $description,
+            ':icon_path' => $icon_path,
+            ':icon_link' => $icon_link
+        ]);
+
+        return $response->withHeader('Location', '/')->withStatus(302);
+    })->setName('company.add');
+
+
+
 
 };
 

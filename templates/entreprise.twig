@@ -1,0 +1,88 @@
+<!doctype html>
+
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entreprises - EasyStage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <script defer src="/assets/js/script.js"></script>
+</head>
+<body>
+    {% include "navbar.twig" %}
+
+    <div class="container mt-5">
+        <h2 class="mb-4">Liste des entreprises</h2>
+        
+        <!-- Barre de recherche -->
+        <input type="text" id="searchBar" class="form-control mb-4" placeholder="Rechercher une entreprise..." onkeyup="filterCompanies()">
+        
+        {% set companies = db.query("SELECT name, description, icon_path, icon_link FROM companies") %}
+        
+        <div id="companyList">
+        {% for company in companies %}
+        <div class="card mb-4 shadow-sm company-card">
+            <div class="row g-0">
+                <div class="col-md-4 d-flex justify-content-center align-items-center bg-light">
+                    <a href="{{ company.icon_link }}" target="_blank">
+                        <img src="{{ company.icon_path }}" alt="Logo de {{ company.name }}" class="img-fluid rounded shadow-sm" style="max-width: 200px; max-height: 200px; object-fit: contain;">
+                    </a>
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h3 class="card-title company-name">{{ company.name }}</h3>
+                        <p class="card-text text-muted">{{ company.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+            <p>Aucune entreprise disponible.</p>
+        {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <nav>
+            <ul class="pagination justify-content-center mt-4">
+                <li class="page-item disabled" id="prevPage"><a class="page-link" href="#" onclick="changePage(-1)">Précédent</a></li>
+                <li class="page-item" id="nextPage"><a class="page-link" href="#" onclick="changePage(1)">Suivant</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Bouton d'ajout d'entreprise -->
+    <a href="/company/create" class="btn btn-primary rounded-circle position-fixed" style="bottom: 20px; right: 20px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+    +
+    </a>
+
+
+    <script>
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        const cards = document.querySelectorAll('.company-card');
+        const totalPages = Math.ceil(cards.length / itemsPerPage);
+
+        function showPage(page) {
+            let start = (page - 1) * itemsPerPage;
+            let end = start + itemsPerPage;
+            cards.forEach((card, index) => {
+                card.style.display = (index >= start && index < end) ? '' : 'none';
+            });
+            document.getElementById('prevPage').classList.toggle('disabled', page === 1);
+            document.getElementById('nextPage').classList.toggle('disabled', page === totalPages);
+        }
+
+        function changePage(direction) {
+            if ((currentPage + direction) > 0 && (currentPage + direction) <= totalPages) {
+                currentPage += direction;
+                showPage(currentPage);
+            }
+        }
+
+        showPage(currentPage);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

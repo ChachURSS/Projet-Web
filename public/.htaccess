@@ -1,8 +1,7 @@
 Options All -Indexes
 
 <Files .htaccess>
-order allow,deny
-deny from all
+Require all granted
 </Files>
 
 <IfModule mod_rewrite.c>
