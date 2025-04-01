@@ -1,0 +1,51 @@
+{% include "navbar.twig" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <h2 class="text-center mb-4">Mes Candidatures</h2>
+        
+        <!-- Affichage des messages de session -->
+        {% if session.flash_success %}
+            <div class="alert alert-success">{{ session.flash_success }}</div>
+        {% endif %}
+        {% if session.flash_error %}
+            <div class="alert alert-danger">{{ session.flash_error }}</div>
+        {% endif %}
+
+        {% if applications|length > 0 %}
+            <table class="table table-hover table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Titre</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Entreprise</th>
+                        <th scope="col">Lettre de motivation</th>
+                        <th scope="col">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in applications %}
+                        <tr>
+                            <td>{{ application.title }}</td>
+                            <td>{{ application.description }}</td>
+                            <td>{{ application.company_name }}</td>
+                            <td>{{ application.Motiv }}</td>
+                            <td>
+                                {% if application.EtatCandidature == 0 %}
+                                    <span class="text-warning">En attente</span>
+                                {% elseif application.EtatCandidature == 1 %}
+                                    <span class="text-success">Acceptée</span>
+                                {% else %}
+                                    <span class="text-danger">Refusée</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center text-muted">Vous n'avez pas encore candidaté à une offre.</p>
+        {% endif %}
+    </div>
+{% endblock %}

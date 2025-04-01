@@ -1112,4 +1112,28 @@ return function (App $app) {
 
         return $view->render($response, 'wishlist.twig', ['favorites' => $favorites]);
     });
+
+    $app->get('/applications', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = "Vous devez être connecté pour voir vos candidatures.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $id_user = $_SESSION['user_id'];
+
+        $stmt = $pdo->prepare("
+            SELECT internships.*, companies.name AS company_name, candidate.Motiv, candidate.EtatCandidature 
+            FROM candidate
+            JOIN internships ON candidate.id_internship = internships.id_internship
+            JOIN companies ON internships.id_company = companies.id_company
+            WHERE candidate.id_user = :id_user
+            ORDER BY internships.bdate DESC
+        ");
+        $stmt->execute([':id_user' => $id_user]);
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $view->render($response, 'applications.twig', ['applications' => $applications]);
+    });
 };
