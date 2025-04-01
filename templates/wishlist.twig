@@ -1,0 +1,25 @@
+{% include "navbar.twig" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2 class="text-center mb-4">Mes Favoris</h2>
+        {% if session.flash_success %}
+            <div class="alert alert-success">{{ session.flash_success }}</div>
+        {% endif %}
+        {% if session.flash_error %}
+            <div class="alert alert-danger">{{ session.flash_error }}</div>
+        {% endif %}
+
+        {% for favorite in favorites %}
+            <div class="internship">
+                <h3>{{ favorite.title }}</h3>
+                <p>{{ favorite.description }}</p>
+                <form method="POST" action="/internships/{{ favorite.id_internship }}/unlike">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        ❌ Retirer des favoris
+                    </button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

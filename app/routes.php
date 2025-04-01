@@ -56,7 +56,36 @@ return function (App $app) {
 
     $app->get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->setName('forgot-password');
 
-    $app->post('/login', [AuthController::class, 'login']);
+    $app->post('/login', function (Request $request, Response $response) {
+        $pdo = $this->get(PDO::class);
+        $data = $request->getParsedBody();
+
+        // Journaliser les données reçues
+        error_log("DEBUG: Données reçues pour la connexion : " . json_encode($data));
+
+        if (empty($data['email']) || empty($data['mdp'])) {
+            $_SESSION['flash_error'] = "Veuillez remplir tous les champs.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE mail = :mail");
+        $stmt->execute([':mail' => $data['email']]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($data['mdp'], $user['password'])) {
+            // Définir les variables de session
+            $_SESSION['user_id'] = $user['id_user'];
+            $_SESSION['token'] = $user['token'];
+
+            // Journaliser l'état de la session après connexion
+            error_log("DEBUG: Session après connexion : " . json_encode($_SESSION));
+
+            return $response->withHeader('Location', '/home')->withStatus(302);
+        } else {
+            $_SESSION['flash_error'] = "Identifiants incorrects.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+    });
 
     $app->get('/logout', function ($request, $response) {
         session_destroy();
@@ -71,23 +100,31 @@ return function (App $app) {
     $app->get('/organization', function ($request, $response, $args) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
-    
+
+        // Vérification de la session utilisateur
+        if (!isset($_SESSION['token'])) {
+            error_log("DEBUG: Aucun token trouvé dans la session.");
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
         $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
         $stmt->execute(['token' => $_SESSION['token']]);
         $user = $stmt->fetch();
-    
+
         if (!$user) {
+            error_log("DEBUG: Aucun utilisateur trouvé avec le token : " . $_SESSION['token']);
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
-    
+
         $stmtOrg = $pdo->prepare("SELECT * FROM organizations WHERE id_organization = :id");
         $stmtOrg->execute(['id' => $user['id_organization']]);
         $organization = $stmtOrg->fetch();
-    
+
         if (!$organization) {
+            error_log("DEBUG: Aucune organisation trouvée pour l'utilisateur.");
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
-    
+
         if ($user['role'] == 0) {
             $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
             $stmtMembers->execute(['org' => $user['id_organization']]);
@@ -104,9 +141,11 @@ return function (App $app) {
                 'org' => $user['id_organization']
             ]);
         }
-    
+
+        $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
+        $stmtMembers->execute(['org' => $user['id_organization']]);
         $members = $stmtMembers->fetchAll();
-    
+
         return $view->render($response, 'organization.twig', [
             'organization' => $organization,
             'role' => $user['role'],
@@ -114,7 +153,7 @@ return function (App $app) {
             'current_user_id' => $user['id_user']
         ]);
     });
-    
+
     $app->get('/organization/edit', function ($request, $response, $args) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
@@ -971,5 +1010,106 @@ return function (App $app) {
             $_SESSION['flash_error'] = "Une erreur est survenue lors de l'enregistrement de votre candidature.";
             return $response->withHeader('Location', '/internships/apply/' . $id_internship)->withStatus(500);
         }
+    });
+
+    // Route POST : Ajouter une offre à la wishlist
+    $app->post('/internships/{id}/like', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $id_internship = (int)$args['id'];
+
+        // Vérification de la session utilisateur
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        // Journaliser l'état de la session avant l'opération
+        error_log("DEBUG: Session avant l'ajout aux favoris : " . json_encode($_SESSION));
+
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = "Vous devez être connecté pour ajouter une offre à vos favoris.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $id_user = $_SESSION['user_id'];
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM favorite WHERE id_user = :id_user AND id_internship = :id_internship");
+            $stmt->execute([':id_user' => $id_user, ':id_internship' => $id_internship]);
+            $favorite = $stmt->fetch();
+
+            if ($favorite) {
+                $_SESSION['flash_error'] = "Cette offre est déjà dans vos favoris.";
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO favorite (id_user, id_internship) VALUES (:id_user, :id_internship)");
+                $stmt->execute([':id_user' => $id_user, ':id_internship' => $id_internship]);
+                $_SESSION['flash_success'] = "Offre ajoutée à vos favoris.";
+            }
+        } catch (PDOException $e) {
+            error_log("Erreur SQL : " . $e->getMessage());
+            $_SESSION['flash_error'] = "Une erreur est survenue lors de l'ajout aux favoris.";
+        }
+
+        // Journaliser l'état de la session après l'opération
+        error_log("DEBUG: Session après l'ajout aux favoris : " . json_encode($_SESSION));
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    // Route POST : Supprimer une offre de la wishlist
+    $app->post('/internships/{id}/unlike', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $id_internship = (int)$args['id'];
+
+        // Vérification de la session utilisateur
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        // Journaliser l'état de la session avant l'opération
+        error_log("DEBUG: Session avant la suppression des favoris : " . json_encode($_SESSION));
+
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = "Vous devez être connecté pour retirer une offre de vos favoris.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $id_user = $_SESSION['user_id'];
+
+        try {
+            $stmt = $pdo->prepare("DELETE FROM favorite WHERE id_user = :id_user AND id_internship = :id_internship");
+            $stmt->execute([':id_user' => $id_user, ':id_internship' => $id_internship]);
+            $_SESSION['flash_success'] = "Offre retirée de vos favoris.";
+        } catch (PDOException $e) {
+            error_log("Erreur SQL : " . $e->getMessage());
+            $_SESSION['flash_error'] = "Une erreur est survenue lors de la suppression des favoris.";
+        }
+
+        // Journaliser l'état de la session après l'opération
+        error_log("DEBUG: Session après la suppression des favoris : " . json_encode($_SESSION));
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    // Route GET : Afficher les offres likées par l'utilisateur
+    $app->get('/wishlist', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = "Vous devez être connecté pour voir vos favoris.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $id_user = $_SESSION['user_id'];
+
+        $stmt = $pdo->prepare("
+            SELECT internships.*, companies.name AS company_name 
+            FROM favorite
+            JOIN internships ON favorite.id_internship = internships.id_internship
+            JOIN companies ON internships.id_company = companies.id_company
+            WHERE favorite.id_user = :id_user
+            ORDER BY favorite.id_internship DESC
+        ");
+        $stmt->execute([':id_user' => $id_user]);
+        $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $view->render($response, 'wishlist.twig', ['favorites' => $favorites]);
     });
 };
