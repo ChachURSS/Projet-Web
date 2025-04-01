@@ -285,16 +285,14 @@ return function (App $app) {
         $data = $request->getParsedBody();
         $name = $data['name'];
         $description = $data['description'];
-        $icon_path = $data['icon_path'];
-        $icon_link = $data['icon_link'];
+        $path_to_icon = $data['path_to_icon']??'';
 
-        $sql = "INSERT INTO companies (name, description, icon_path, icon_link) VALUES (:name, :description, :icon_path, :icon_link)";
+        $sql = "INSERT INTO companies (name, description, path_to_icon) VALUES (:name, :description, :path_to_icon)";
         $stmt = $this->get('db')->prepare($sql);
         $stmt->execute([
             ':name' => $name,
             ':description' => $description,
-            ':icon_path' => $icon_path,
-            ':icon_link' => $icon_link
+            ':path_to_icon' => $path_to_icon
         ]);
 
         return $response->withHeader('Location', '/')->withStatus(302);
