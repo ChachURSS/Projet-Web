@@ -32,7 +32,7 @@ return function (\DI\ContainerBuilder $containerBuilder) {
             return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
         },
 
-        // Ajouter la définition pour le service 'view'
+        // Ajouter la dï¿½finition pour le service 'view'
         'view' => function (ContainerInterface $c) {
             return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
         },

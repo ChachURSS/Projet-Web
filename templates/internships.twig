@@ -9,7 +9,7 @@
                 <tr>
                     <th scope="col">Titre</th>
                     <th scope="col">Description</th>
-                    <th scope="col">Status</th>
+                    <th scope="col">Statut</th>
                     <th scope="col">Icône</th>
                     <th scope="col">Date de début</th>
                     <th scope="col">Date de fin</th>
@@ -22,7 +22,13 @@
                     <tr>
                         <td>{{ internship.title }}</td>
                         <td>{{ internship.description }}</td>
-                        <td>{{ internship.status }}</td>
+                        <td>
+                            {% if internship.status == 1 %}
+                                <span class="text-success">Disponible</span>
+                            {% else %}
+                                <span class="text-danger">Indisponible</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if internship.path_to_icon %}
                                 <img src="{{ internship.path_to_icon }}" alt="Icône" class="img-thumbnail" style="max-width: 50px; max-height: 50px;">
