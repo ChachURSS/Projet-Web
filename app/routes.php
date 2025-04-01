@@ -520,16 +520,19 @@ return function (App $app) {
             $id_company = $pdo->lastInsertId();
         }
 
-        // Ajout de l'annonce
+        // Gestion du statut (par défaut 0 si non activé)
+        $status = isset($data['status']) ? $data['status'] : 0;
+
+        // Ajout de l'annonce avec la date de post
         $stmt = $pdo->prepare("
-            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, post_date, id_company)
-            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate,:post_date, :id_company)
+            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, post_date id_company)
+            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :post_date, :id_company)
         ");
 
         $stmt->execute([
             ':title' => $data['title'],
             ':description' => $data['description'],
-            ':status' => $data['status'],
+            ':status' => $status,
             ':path_to_icon' => $path_to_icon,
             ':bdate' => $data['bdate'],
             ':edate' => $data['edate'],
