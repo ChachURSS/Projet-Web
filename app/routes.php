@@ -1085,7 +1085,7 @@ return function (App $app) {
         // Journaliser l'état de la session après l'opération
         error_log("DEBUG: Session après la suppression des favoris : " . json_encode($_SESSION));
 
-        return $response->withHeader('Location', '/internships')->withStatus(302);
+        return $response->withHeader('Location', '/wishlist')->withStatus(302);
     });
 
     // Route GET : Afficher les offres likées par l'utilisateur
