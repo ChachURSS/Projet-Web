@@ -18,8 +18,6 @@
         <!-- Barre de recherche -->
         <input type="text" id="searchBar" class="form-control mb-4" placeholder="Rechercher une entreprise..." onkeyup="filterCompanies()">
         
-        {% set companies = db.query("SELECT name, description, icon_path, icon_link FROM companies") %}
-        
         <div id="companyList">
         {% for company in companies %}
         <div class="card mb-4 shadow-sm company-card">
@@ -33,6 +31,14 @@
                     <div class="card-body">
                         <h3 class="card-title company-name">{{ company.name }}</h3>
                         <p class="card-text text-muted">{{ company.description }}</p>
+                        <div class="d-flex justify-content-end">
+                            <a href="/company/edit/{{ company.id }}" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="bi bi-gear"></i> Modifier
+                            </a>
+                            <a href="/company/delete/{{ company.id }}" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -45,8 +51,8 @@
         <!-- Pagination -->
         <nav>
             <ul class="pagination justify-content-center mt-4">
-                <li class="page-item disabled" id="prevPage"><a class="page-link" href="#" onclick="changePage(-1)">Précédent</a></li>
-                <li class="page-item" id="nextPage"><a class="page-link" href="#" onclick="changePage(1)">Suivant</a></li>
+                <li class="page-item disabled" id="prevPage"><a class="page-link" href="#" onclick="changePage(-1)"> -1 </a></li>
+                <li class="page-item" id="nextPage"><a class="page-link" href="#" onclick="changePage(1)"> +1 </a></li>
             </ul>
         </nav>
     </div>

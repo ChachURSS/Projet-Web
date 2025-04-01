@@ -281,22 +281,58 @@ return function (App $app) {
     })->setName('company.create');
 
     // Traiter l'ajout d'une entreprise
-    $app->post('/company/add', function ($request, $response, $args) {
-        $data = $request->getParsedBody();
-        $name = $data['name'];
-        $description = $data['description'];
-        $path_to_icon = $data['path_to_icon']??'';
+    $app->post('/company/add', function (Request $request, Response $response, $args) {
+    $pdo = $this->get(PDO::class);
 
-        $sql = "INSERT INTO companies (name, description, path_to_icon) VALUES (:name, :description, :path_to_icon)";
-        $stmt = $this->get('db')->prepare($sql);
-        $stmt->execute([
-            ':name' => $name,
-            ':description' => $description,
-            ':path_to_icon' => $path_to_icon
-        ]);
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+    $stmt->execute(['token' => $_SESSION['token']]);
+    $user = $stmt->fetch();
 
-        return $response->withHeader('Location', '/')->withStatus(302);
-    })->setName('company.add');
+    if (!$user) {
+        return $response->withHeader('Location', '/login')->withStatus(302);
+    }
+
+    $data = $request->getParsedBody();
+    $name = trim($data['name'] ?? '');
+    $description = trim($data['description'] ?? '');
+
+    $upload_dir = __DIR__ . '/../public/uploads/';
+    $public_path_prefix = '/uploads/';
+    $new_logo_path = null;
+
+    if (!empty($_FILES['path_to_icon']['tmp_name'])) {
+        $file = $_FILES['path_to_icon'];
+        $mime = mime_content_type($file['tmp_name']);
+
+        if (str_starts_with($mime, 'image/')) {
+            $base_name = pathinfo($file['name'], PATHINFO_FILENAME);
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base_name);
+            $filename = $safe_name . '.' . $extension;
+            $i = 1;
+
+            while (file_exists($upload_dir . $filename)) {
+                $filename = $safe_name . '_' . $i . '.' . $extension;
+                $i++;
+            }
+
+            $target_path = $upload_dir . $filename;
+            if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                $new_logo_path = $public_path_prefix . $filename;
+            }
+        }
+    }
+
+    $sql = "INSERT INTO companies (name, description, path_to_icon) VALUES (:name, :description, :path_to_icon)";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':name' => $name,
+        ':description' => $description,
+        ':path_to_icon' => $new_logo_path
+    ]);
+
+    return $response->withHeader('Location', '/companies')->withStatus(302);
+})->setName('company.add');
 
 
 
