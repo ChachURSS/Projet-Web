@@ -84,18 +84,15 @@ return function (App $app) {
         }
     
         if ($user['role'] == 0) {
-            // admin → tous les membres
             $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
             $stmtMembers->execute(['org' => $user['id_organization']]);
         } elseif ($user['role'] == 1) {
-            // pilote → les élèves et lui-même
             $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org AND (role = 2 OR id_user = :self)");
             $stmtMembers->execute([
                 'org' => $user['id_organization'],
                 'self' => $user['id_user']
             ]);
         } else {
-            // élève → lui-même uniquement
             $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_user = :self AND id_organization = :org");
             $stmtMembers->execute([
                 'self' => $user['id_user'],
@@ -134,7 +131,6 @@ return function (App $app) {
         ]);
     });
     
-    // Route GET : page d'édition d'organisation (admins uniquement)
     $app->get('/organization/member/{id}/edit', function ($request, $response, $args) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
@@ -175,7 +171,6 @@ return function (App $app) {
         return $response;
     });
 
-    // Route GET : gestion des membres (admin + pilote)
     $app->get('/organization/members', function ($request, $response, $args) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
