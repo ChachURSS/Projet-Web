@@ -29,16 +29,14 @@
 							</div>
 							<div class="col-md-8">
 								<div class="card-body">
-									<h3 class="card-title company-name">{{ company.name }}</h3>
+									<h3 class="card-title company-name">
+										<a href="/companies/detail/{{ company.id_company }}">{{ company.name }}</a>
+									</h3>
 									<p class="card-text text-muted">{{ company.description }}</p>
 									<div class="d-flex justify-content-end">
-										{% if role == 0 %}
-										<a href="/company/edit" class="btn btn-sm btn-outline-secondary">Modifier</a>
-										{% endif %}
-										<form action="/company/delete/{{ company.id }}" method="post" style="display:inline;">
-											<button type="submit" class="btn btn-outline-danger btn-sm">
-												<i class="bi bi-trash"></i> Supprimer
-											</button>
+										<a href="/companies/edit/{{ company.id_company }}" class="btn btn-primary btn-sm">Modifier</a>
+										<form method="POST" action="/companies/delete/{{ company.id_company }}" style="display:inline;">
+											<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')">Supprimer</button>
 										</form>
 									</div>
 								</div>

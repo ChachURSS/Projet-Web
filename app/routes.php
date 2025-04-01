@@ -277,101 +277,97 @@ return function (App $app) {
             'companies' => $companies,
             'role' => $user['role']
         ]);
-});
-    $app->get('/company/edit', function ($request, $response, $args) {
+    });
+        //Suppression d'une entreprise
+        $app->post('/companies/delete/{id}', function (Request $request, Response $response, $args) {
+            $pdo = $this->get(PDO::class);
+            $id_company = (int)$args['id'];
+
+            $stmt = $pdo->prepare("DELETE FROM companies WHERE id_company = :id");
+            $stmt->execute([':id' => $id_company]);
+
+            return $response->withHeader('Location', '/companies')->withStatus(302);
+        });
+
+// GET : Afficher le formulaire de modification d'une entreprise
+    $app->get('/companies/edit/{id}', function (Request $request, Response $response, $args) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
+        $id_company = (int)$args['id'];
 
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
-        $stmt->execute(['token' => $_SESSION['token']]);
-        $user = $stmt->fetch();
+        $stmt = $pdo->prepare("SELECT * FROM companies WHERE id_company = :id");
+        $stmt->execute([':id' => $id_company]);
+        $company = $stmt->fetch();
 
-        if (!$user || $user['role'] != 0) {
-            return $response->withHeader('Location', '/company')->withStatus(302);
-        }
-
-        $stmtOrg = $pdo->prepare("SELECT * FROM companies WHERE id_company = :id");
-        //$stmtOrg->execute(['id' => $user['id_company']]);
-        $company = $stmtOrg->fetch();
-
-        return $view->render($response, 'entreprise_edit.twig', [
-            'company' => $company
-        ]);
+        return $view->render($response, 'entreprise_edit.twig', ['company' => $company]);
     });
 
-
-    $app->post('/company/update', function ($request, $response, $args) {
+    // POST : Modifier une entreprise
+    $app->post('/companies/edit/{id}', function (Request $request, Response $response, $args) {
         $pdo = $this->get(PDO::class);
-    
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
-        $stmt->execute(['token' => $_SESSION['token']]);
-        $user = $stmt->fetch();
-    
-        if (!$user || $user['role'] != 0) {
-            return $response->withHeader('Location', '/company')->withStatus(403);
-        }
-    
         $data = $request->getParsedBody();
+        $id_company = (int)$args['id'];
+
         $name = trim($data['name'] ?? '');
         $description = trim($data['description'] ?? '');
         $delete_logo = isset($data['delete_logo']);
-    
+
         $stmtOrg = $pdo->prepare("SELECT path_to_icon FROM companies WHERE id_company = :id");
-        //$stmtOrg->execute(['id' => $user['id_company']]);
+        $stmtOrg->execute(['id' => $id_company]);
         $comp = $stmtOrg->fetch();
         $old_logo = $comp['path_to_icon'];
-    
+
         $upload_dir = __DIR__ . '/../public/uploads/';
         $public_path_prefix = '/uploads/';
         $new_logo_path = null;
-    
+
         if (!empty($_FILES['logo']['tmp_name'])) {
             $file = $_FILES['logo'];
             $mime = mime_content_type($file['tmp_name']);
-    
+
             if (str_starts_with($mime, 'image/')) {
                 $base_name = pathinfo($file['name'], PATHINFO_FILENAME);
                 $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
                 $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base_name);
                 $filename = $safe_name . '.' . $extension;
                 $i = 1;
-    
+
                 while (file_exists($upload_dir . $filename)) {
                     $filename = $safe_name . '_' . $i . '.' . $extension;
                     $i++;
                 }
-    
+
                 $target_path = $upload_dir . $filename;
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
                     $new_logo_path = $public_path_prefix . $filename;
-    
+
                     if ($old_logo && file_exists(__DIR__ . '/../public' . $old_logo)) {
                         unlink(__DIR__ . '/../public' . $old_logo);
                     }
                 }
             }
         }
-    
+
         if ($delete_logo && $old_logo && file_exists(__DIR__ . '/../public' . $old_logo)) {
             unlink(__DIR__ . '/../public' . $old_logo);
             $new_logo_path = null;
         }
-    
+
         $query = "UPDATE companies SET name = :name, description = :description";
-        $params = ['name' => $name, 'description' => $description, 'id' => $user['id_company']];
-    
+        $params = ['name' => $name, 'description' => $description, 'id' => $id_company];
+
         if (!is_null($new_logo_path)) {
             $query .= ", path_to_icon = :icon";
             $params['icon'] = $new_logo_path;
         } elseif ($delete_logo) {
             $query .= ", path_to_icon = NULL";
         }
-    
+
         $query .= " WHERE id_company = :id";
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
-    
-        return $response->withHeader('Location', '/company')->withStatus(302);
+
+        return $response->withHeader('Location', '/companies')->withStatus(302);
     });
     
 
@@ -433,6 +429,26 @@ return function (App $app) {
 
     return $response->withHeader('Location', '/companies')->withStatus(302);
 })->setName('company.add');
+
+    // GET : Afficher les détails d'une entreprise
+    $app->get('/companies/detail/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+        $id_company = (int)$args['id'];
+
+        $stmt = $pdo->prepare("SELECT * FROM companies WHERE id_company = :id");
+        $stmt->execute([':id' => $id_company]);
+        $company = $stmt->fetch();
+
+        $stmtInternships = $pdo->prepare("SELECT * FROM internships WHERE id_company = :id ORDER BY bdate DESC");
+        $stmtInternships->execute([':id' => $id_company]);
+        $internships = $stmtInternships->fetchAll();
+
+        return $view->render($response, 'entreprise_detail.twig', [
+            'company' => $company,
+            'internships' => $internships
+        ]);
+    });
 
 
     // Route GET : Afficher les stages
@@ -506,8 +522,8 @@ return function (App $app) {
 
         // Ajout de l'annonce
         $stmt = $pdo->prepare("
-            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, id_company)
-            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :id_company)
+            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, post_date, id_company)
+            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate,:post_date, :id_company)
         ");
 
         $stmt->execute([
@@ -517,6 +533,7 @@ return function (App $app) {
             ':path_to_icon' => $path_to_icon,
             ':bdate' => $data['bdate'],
             ':edate' => $data['edate'],
+            ':post_date' => date('Y-m-d'),
             ':id_company' => $id_company
         ]);
 
