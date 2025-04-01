@@ -3,9 +3,11 @@
 use Psr\Container\ContainerInterface;
 use Slim\Views\Twig;
 use App\Controller\AuthController;
+use Slim\Views\TwigMiddleware;  // Ajouter l'importation de TwigMiddleware
 
 return function (\DI\ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
+
         AuthController::class => function ($c) {
             return new AuthController($c->get(\Slim\Views\Twig::class));
         },
@@ -29,5 +31,11 @@ return function (\DI\ContainerBuilder $containerBuilder) {
         Twig::class => function () {
             return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
         },
+
+        // Ajouter la définition pour le service 'view'
+        'view' => function (ContainerInterface $c) {
+            return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
+        },
+
     ]);
 };
