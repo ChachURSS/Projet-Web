@@ -36,7 +36,48 @@
                 <label for="company_name" class="form-label">Nom de l'entreprise</label>
                 <input type="text" class="form-control" id="company_name" name="company_name" value="{{ internship.company_name }}" required>
             </div>
+            <div class="mb-3">
+                <label for="tags" class="form-label">Compétences (tags)</label>
+                <input type="text" class="form-control" id="tags" name="tags" value="{{ internship.tags | join(', ') }}" placeholder="Ajoutez des tags séparés par des virgules" autocomplete="off">
+                <small class="form-text text-muted">Exemple : PHP, JavaScript, SQL</small>
+                <ul class="list-group mt-2" id="tags-suggestions" style="display: none;"></ul>
+            </div>
             <button type="submit" class="btn btn-primary">Modifier</button>
         </form>
     </div>
+
+    <script>
+        document.getElementById('tags').addEventListener('input', function () {
+            const input = this.value.trim();
+            const lastTag = input.split(',').pop().trim();
+            const suggestionsBox = document.getElementById('tags-suggestions');
+
+            if (lastTag.length > 0) {
+                fetch(`/tags/suggestions?query=${encodeURIComponent(lastTag)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsBox.innerHTML = '';
+                        if (data.length > 0) {
+                            suggestionsBox.style.display = 'block';
+                            data.forEach(tag => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item list-group-item-action';
+                                li.textContent = tag.name;
+                                li.addEventListener('click', () => {
+                                    const tagsArray = input.split(',').map(t => t.trim());
+                                    tagsArray[tagsArray.length - 1] = tag.name;
+                                    this.value = tagsArray.join(', ') + ', ';
+                                    suggestionsBox.style.display = 'none';
+                                });
+                                suggestionsBox.appendChild(li);
+                            });
+                        } else {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    });
+            } else {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+    </script>
 {% endblock %}

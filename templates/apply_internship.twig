@@ -1,0 +1,19 @@
+{% include "navbar.twig" %}
+
+{% block content %}
+    <div class="container mt-4">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <h2 class="text-center mb-4">Postuler à l'offre : {{ internship.title }}</h2>
+        <form method="POST" action="/internships/apply/{{ internship.id_internship }}" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="motivation_letter" class="form-label">Lettre de motivation</label>
+                <textarea class="form-control" id="motivation_letter" name="motivation_letter" rows="5" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="cv" class="form-label">Télécharger votre CV (PDF uniquement)</label>
+                <input type="file" class="form-control" id="cv" name="cv" accept="application/pdf" required>
+            </div>
+            <button type="submit" class="btn btn-success">Envoyer ma candidature</button>
+        </form>
+    </div>
+{% endblock %}

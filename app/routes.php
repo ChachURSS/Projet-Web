@@ -8,6 +8,11 @@ use App\Controller\StageController;
 use App\Controller\AuthController;
 use App\Middleware\AuthMiddleware;
 
+// Vérification et démarrage de la session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 return function (App $app) {
     $app->get('/', function (Request $request, Response $response, $args) {
         $view = Twig::fromRequest($request);
@@ -842,6 +847,112 @@ return function (App $app) {
             ':id' => $id_internship
         ]);
 
+        // Gestion des tags
+        $stmt = $pdo->prepare("DELETE FROM have_itags WHERE id_internship = :id_internship");
+        $stmt->execute([':id_internship' => $id_internship]);
+
+        if (!empty($data['tags'])) {
+            $tags = array_map('trim', explode(',', $data['tags']));
+            foreach ($tags as $tag) {
+                if (!empty($tag)) {
+                    // Vérifier si le tag existe déjà
+                    $stmt = $pdo->prepare("SELECT id_itag FROM int_tags WHERE name = :name");
+                    $stmt->execute([':name' => $tag]);
+                    $existingTag = $stmt->fetch();
+
+                    if ($existingTag) {
+                        $id_itag = $existingTag['id_itag'];
+                    } else {
+                        // Ajouter le tag s'il n'existe pas
+                        $stmt = $pdo->prepare("INSERT INTO int_tags (name) VALUES (:name)");
+                        $stmt->execute([':name' => $tag]);
+                        $id_itag = $pdo->lastInsertId();
+                    }
+
+                    // Lier le tag à l'annonce
+                    $stmt = $pdo->prepare("INSERT INTO have_itags (id_itag, id_internship) VALUES (:id_itag, :id_internship)");
+                    $stmt->execute([
+                        ':id_itag' => $id_itag,
+                        ':id_internship' => $id_internship
+                    ]);
+                }
+            }
+        }
+
         return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    $app->get('/internships/apply/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+        $id_internship = (int)$args['id'];
+
+        $stmt = $pdo->prepare("SELECT * FROM internships WHERE id_internship = :id");
+        $stmt->execute([':id' => $id_internship]);
+        $internship = $stmt->fetch();
+
+        if (!$internship) {
+            return $response->withHeader('Location', '/internships')->withStatus(404);
+        }
+
+        return $view->render($response, 'apply_internship.twig', ['internship' => $internship]);
+    });
+
+    $app->post('/internships/apply/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $id_internship = (int)$args['id'];
+
+        // Vérification de la session utilisateur
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = "Vous devez être connecté pour postuler.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $user_id = $_SESSION['user_id'];
+
+        $data = $request->getParsedBody();
+        $upload_dir = __DIR__ . '/../public/uploads/';
+        $cv_path = null;
+
+        // Gestion de l'upload du CV
+        if (!empty($_FILES['cv']['tmp_name'])) {
+            $file = $_FILES['cv'];
+            $mime = mime_content_type($file['tmp_name']);
+
+            if (str_starts_with($mime, 'application/pdf')) {
+                $filename = uniqid('cv_') . '.pdf';
+                $target_path = $upload_dir . $filename;
+
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $cv_path = '/uploads/' . $filename;
+                }
+            }
+        }
+
+        if (!$cv_path) {
+            $_SESSION['flash_error'] = "Erreur lors de l'upload du CV. Veuillez réessayer.";
+            return $response->withHeader('Location', '/internships/apply/' . $id_internship)->withStatus(400);
+        }
+
+        try {
+            // Enregistrement de la candidature dans la table `candidate`
+            $stmt = $pdo->prepare("
+                INSERT INTO candidate (id_internship, id_user, CV_Path, Motiv, EtatCandidature)
+                VALUES (:id_internship, :id_user, :cv_path, :motivation_letter, :etat_candidature)
+            ");
+            $stmt->execute([
+                ':id_internship' => $id_internship,
+                ':id_user' => $user_id,
+                ':cv_path' => $cv_path,
+                ':motivation_letter' => $data['motivation_letter'],
+                ':etat_candidature' => 0 // 0 = En attente
+            ]);
+
+            $_SESSION['flash_success'] = "Votre candidature a été envoyée avec succès.";
+            return $response->withHeader('Location', '/internships')->withStatus(302);
+        } catch (PDOException $e) {
+            error_log("Erreur SQL : " . $e->getMessage());
+            $_SESSION['flash_error'] = "Une erreur est survenue lors de l'enregistrement de votre candidature.";
+            return $response->withHeader('Location', '/internships/apply/' . $id_internship)->withStatus(500);
+        }
     });
 };
