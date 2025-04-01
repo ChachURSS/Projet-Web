@@ -321,10 +321,10 @@ return function (App $app) {
             $id_company = $pdo->lastInsertId();
         }
 
-        // Ajout de l'annonce
+        // Ajout de l'annonce avec la date de post
         $stmt = $pdo->prepare("
-            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, id_company)
-            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :id_company)
+            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, post_date, id_company)
+            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :post_date, :id_company)
         ");
 
         $stmt->execute([
@@ -334,6 +334,7 @@ return function (App $app) {
             ':path_to_icon' => $path_to_icon,
             ':bdate' => $data['bdate'],
             ':edate' => $data['edate'],
+            ':post_date' => date('Y-m-d'), // Ajout de la date actuelle comme date de post
             ':id_company' => $id_company
         ]);
 
