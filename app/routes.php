@@ -435,8 +435,159 @@ return function (App $app) {
 })->setName('company.add');
 
 
+    // Route GET : Afficher les stages
+    $app->get('/internships', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
 
+        $stmt = $pdo->query("
+            SELECT internships.*, companies.name AS company_name 
+            FROM internships 
+            JOIN companies ON internships.id_company = companies.id_company 
+            ORDER BY bdate DESC
+        ");
+        $internships = $stmt->fetchAll();
 
+        return $view->render($response, 'internships.twig', ['internships' => $internships]);
+    });
+
+    // Route GET : Afficher le formulaire d'ajout de stage
+    $app->get('/internships/add', function (Request $request, Response $response, $args) {
+        $view = Twig::fromRequest($request);
+        return $view->render($response, 'add_internship.twig');
+    });
+
+    // Route POST : Ajouter un stage avec gestion de l'upload d'icône
+    $app->post('/internships/add', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $data = $request->getParsedBody();
+
+        $upload_dir = __DIR__ . '/../public/uploads/';
+        $public_path_prefix = '/uploads/';
+        $path_to_icon = null;
+
+        // Gestion de l'upload d'icône
+        if (!empty($_FILES['path_to_icon']['tmp_name'])) {
+            $file = $_FILES['path_to_icon'];
+            $mime = mime_content_type($file['tmp_name']);
+
+            if (str_starts_with($mime, 'image/')) {
+                $base_name = pathinfo($file['name'], PATHINFO_FILENAME);
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $base_name);
+                $filename = $safe_name . '.' . $extension;
+                $i = 1;
+
+                while (file_exists($upload_dir . $filename)) {
+                    $filename = $safe_name . '_' . $i . '.' . $extension;
+                    $i++;
+                }
+
+                $target_path = $upload_dir . $filename;
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $path_to_icon = $public_path_prefix . $filename;
+                }
+            }
+        }
+
+        // Vérification ou ajout de l'entreprise
+        $company_name = trim($data['company_name']);
+        $stmt = $pdo->prepare("SELECT id_company FROM companies WHERE name = :name");
+        $stmt->execute([':name' => $company_name]);
+        $company = $stmt->fetch();
+
+        if ($company) {
+            $id_company = $company['id_company'];
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO companies (name) VALUES (:name)");
+            $stmt->execute([':name' => $company_name]);
+            $id_company = $pdo->lastInsertId();
+        }
+
+        // Ajout de l'annonce
+        $stmt = $pdo->prepare("
+            INSERT INTO internships (title, description, status, path_to_icon, bdate, edate, id_company)
+            VALUES (:title, :description, :status, :path_to_icon, :bdate, :edate, :id_company)
+        ");
+
+        $stmt->execute([
+            ':title' => $data['title'],
+            ':description' => $data['description'],
+            ':status' => $data['status'],
+            ':path_to_icon' => $path_to_icon,
+            ':bdate' => $data['bdate'],
+            ':edate' => $data['edate'],
+            ':id_company' => $id_company
+        ]);
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    // Route POST : Supprimer une offre
+    $app->post('/internships/delete/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $id_internship = (int)$args['id'];
+
+        $stmt = $pdo->prepare("DELETE FROM internships WHERE id_internship = :id");
+        $stmt->execute([':id' => $id_internship]);
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
+
+    // Route GET : Afficher le formulaire de modification d'une offre
+    $app->get('/internships/edit/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+        $id_internship = (int)$args['id'];
+
+        $stmt = $pdo->prepare("
+            SELECT internships.*, companies.name AS company_name 
+            FROM internships 
+            JOIN companies ON internships.id_company = companies.id_company 
+            WHERE id_internship = :id
+        ");
+        $stmt->execute([':id' => $id_internship]);
+        $internship = $stmt->fetch();
+
+        return $view->render($response, 'edit_internship.twig', ['internship' => $internship]);
+    });
+
+    // Route POST : Modifier une offre
+    $app->post('/internships/edit/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $data = $request->getParsedBody();
+        $id_internship = (int)$args['id'];
+
+        // Vérification ou ajout de l'entreprise
+        $company_name = trim($data['company_name']);
+        $stmt = $pdo->prepare("SELECT id_company FROM companies WHERE name = :name");
+        $stmt->execute([':name' => $company_name]);
+        $company = $stmt->fetch();
+
+        if ($company) {
+            $id_company = $company['id_company'];
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO companies (name) VALUES (:name)");
+            $stmt->execute([':name' => $company_name]);
+            $id_company = $pdo->lastInsertId();
+        }
+
+        // Mise à jour de l'offre
+        $stmt = $pdo->prepare("
+            UPDATE internships 
+            SET title = :title, description = :description, status = :status, bdate = :bdate, edate = :edate, id_company = :id_company 
+            WHERE id_internship = :id
+        ");
+        $stmt->execute([
+            ':title' => $data['title'],
+            ':description' => $data['description'],
+            ':status' => $data['status'],
+            ':bdate' => $data['bdate'],
+            ':edate' => $data['edate'],
+            ':id_company' => $id_company,
+            ':id' => $id_internship
+        ]);
+
+        return $response->withHeader('Location', '/internships')->withStatus(302);
+    });
 };
-
-
