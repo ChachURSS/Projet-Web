@@ -771,6 +771,41 @@ return function (App $app) {
         return $view->render($response, 'internships.twig', ['internships' => $internships]);
     });
 
+$app->post('/rate-company', function (Request $request, Response $response) {
+    $pdo = $this->get(PDO::class);
+    $data = json_decode($request->getBody(), true);
+    $userId = $_SESSION['user_id'] ?? null;
+
+    if (!$userId) {
+        return $response->withJson(['success' => false, 'message' => 'Vous devez être connecté.'], 401);
+    }
+
+    if (!isset($data['company_id'], $data['rating']) || !is_numeric($data['rating']) || $data['rating'] < 1 || $data['rating'] > 5) {
+        return $response->withJson(['success' => false, 'message' => 'Données invalides.'], 400);
+    }
+
+    $companyId = (int) $data['company_id'];
+    $rating = (int) $data['rating'];
+
+    // Vérifier si l'utilisateur a déjà noté l'entreprise
+    $stmt = $pdo->prepare("SELECT id_rating FROM rating WHERE id_user = :user_id AND id_company = :company_id");
+    $stmt->execute(['user_id' => $userId, 'company_id' => $companyId]);
+    $existingRating = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($existingRating) {
+        // Mettre à jour la note existante
+        $stmt = $pdo->prepare("UPDATE rating SET note = :rating WHERE id_user = :user_id AND id_company = :company_id");
+    } else {
+        // Insérer une nouvelle note
+        $stmt = $pdo->prepare("INSERT INTO rating (id_user, id_company, note) VALUES (:user_id, :company_id, :rating)");
+    }
+
+    $stmt->execute(['user_id' => $userId, 'company_id' => $companyId, 'rating' => $rating]);
+
+    return $response->withJson(['success' => true, 'message' => 'Note enregistrée avec succès !']);
+});
+
+
     // Route GET : Afficher le formulaire d'ajout de stage
     $app->get('/internships/add', function (Request $request, Response $response, $args) {
         $view = Twig::fromRequest($request);

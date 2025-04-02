@@ -60,6 +60,30 @@
             </div>
         </div>
 
+        <div class="rating-container my-4">
+            <h4>Note de l'entreprise</h4>
+            <div class="d-flex align-items-center">
+                <span id="averageRating" class="me-2">{{ average_rating }}/5</span>
+                <span class="text-warning">&#9733;</span>
+            </div>
+
+            {% if role in [0, 1, 2] %}
+                <div class="mt-3">
+                    <label for="userRating" class="form-label">Votre note :</label>
+                    <select id="userRating" class="form-select w-auto d-inline-block">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                    <button class="btn btn-primary ms-2" onclick="submitRating()">Noter</button>
+                </div>
+            {% else %}
+                <p class="text-muted">Connectez-vous pour noter cette entreprise.</p>
+            {% endif %}
+        </div>
+
         <h3 class="mb-4">Stages proposes</h3>
         {% if internships is not empty %}
             <div class="list-group">
@@ -77,6 +101,33 @@
 
         <a href="/companies" class="btn btn-secondary mt-4">Retour a la liste des entreprises</a>
     </div>
+
+    <script>
+        function submitRating() {
+            const rating = document.getElementById('userRating').value;
+            const companyId = {{ company.id }};
+
+            fetch('/rate-company', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    company_id: companyId,
+                    rating: rating
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Note enregistrée avec succès !');
+                    location.reload();
+                } else {
+                    alert('Une erreur est survenue.');
+                }
+            });
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
