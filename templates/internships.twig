@@ -30,7 +30,7 @@
                 <tbody>
                     {% for internship in internships %}
                         <tr>
-                            <td>{{ internship.title }}</td>
+                            <td><a href="/internships/detail/{{ internship.id_internship }}">{{ internship.title }}</a></td>
                             <td>{{ internship.description }}</td>
                             <td>
                                 {% if internship.status == 1 %}
