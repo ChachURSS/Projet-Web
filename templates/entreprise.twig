@@ -54,10 +54,12 @@
 									</h3>
 									<p class="card-text text-muted">{{ company.description }}</p>
 									<div class="d-flex justify-content-end">
+										{% if role in [0, 1] %}
 										<a href="/companies/edit/{{ company.id_company }}" class="btn btn-primary btn-sm">Modifier</a>
 										<form method="POST" action="/companies/delete/{{ company.id_company }}" style="display:inline;">
 											<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')">Supprimer</button>
 										</form>
+										{% endif %}
 									</div>
 								</div>
 							</div>
@@ -80,12 +82,12 @@
 					</ul>
 				</nav>
 			</div>
-
+		{% if role in [0, 1] %}
 		<!-- Bouton d'ajout d'entreprise -->
 		<a href="/company/create" class="btn btn-primary rounded-circle position-fixed" style="bottom: 20px; right: 20px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
 			+
 		</a>
-
+		{% endif %}
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	</body>
 </html>
