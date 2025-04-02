@@ -1267,4 +1267,34 @@ $app->post('/rate-company', function (Request $request, Response $response) {
 
         return $view->render($response, 'applications.twig', ['applications' => $applications]);
     });
+
+    $app->get('/internships/detail/{id}', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $view = Twig::fromRequest($request);
+        $id_internship = (int)$args['id'];
+
+        $stmt = $pdo->prepare("
+            SELECT internships.*, companies.name AS company_name 
+            FROM internships 
+            JOIN companies ON internships.id_company = companies.id_company 
+            WHERE internships.id_internship = :id
+        ");
+        $stmt->execute([':id' => $id_internship]);
+        $internship = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$internship) {
+            return $response->withHeader('Location', '/internships')->withStatus(404);
+        }
+
+        $stmtTags = $pdo->prepare("
+            SELECT int_tags.name 
+            FROM have_itags 
+            JOIN int_tags ON have_itags.id_itag = int_tags.id_itag 
+            WHERE have_itags.id_internship = :id_internship
+        ");
+        $stmtTags->execute([':id_internship' => $id_internship]);
+        $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
+
+        return $view->render($response, 'internship_detail.twig', ['internship' => $internship]);
+    });
 };
