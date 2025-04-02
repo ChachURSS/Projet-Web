@@ -749,12 +749,23 @@ return function (App $app) {
         $pdo = $this->get(PDO::class);
         $view = Twig::fromRequest($request);
 
-        $stmt = $pdo->query("
+        $user_id = $_SESSION['user_id'] ?? null;
+        $queryParams = $request->getQueryParams();
+        $search = trim($queryParams['search'] ?? '');
+
+        $sql = "
             SELECT internships.*, companies.name AS company_name 
             FROM internships 
             JOIN companies ON internships.id_company = companies.id_company 
+            WHERE internships.title LIKE :search1 OR internships.description LIKE :search2 OR companies.name LIKE :search3
             ORDER BY bdate DESC
-        ");
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':search1' => '%' . $search . '%',
+            ':search2' => '%' . $search . '%',
+            ':search3' => '%' . $search . '%'
+        ]);
         $internships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($internships as &$internship) {
@@ -766,9 +777,28 @@ return function (App $app) {
             ");
             $stmtTags->execute([':id_internship' => $internship['id_internship']]);
             $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
+
+            // Vérifier si l'utilisateur a ajouté ce stage à ses favoris
+            if ($user_id) {
+                $stmtFavorite = $pdo->prepare("
+                    SELECT 1 
+                    FROM favorite 
+                    WHERE id_user = :id_user AND id_internship = :id_internship
+                ");
+                $stmtFavorite->execute([
+                    ':id_user' => $user_id,
+                    ':id_internship' => $internship['id_internship']
+                ]);
+                $internship['is_favorite'] = (bool) $stmtFavorite->fetchColumn();
+            } else {
+                $internship['is_favorite'] = false;
+            }
         }
 
-        return $view->render($response, 'internships.twig', ['internships' => $internships]);
+        return $view->render($response, 'internships.twig', [
+            'internships' => $internships,
+            'search' => $search
+        ]);
     });
 
 $app->post('/rate-company', function (Request $request, Response $response) {
@@ -1171,14 +1201,6 @@ $app->post('/rate-company', function (Request $request, Response $response) {
         $pdo = $this->get(PDO::class);
         $id_internship = (int)$args['id'];
 
-        // Vérification de la session utilisateur
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-
-        // Journaliser l'état de la session avant l'opération
-        error_log("DEBUG: Session avant la suppression des favoris : " . json_encode($_SESSION));
-
         if (!isset($_SESSION['user_id'])) {
             $_SESSION['flash_error'] = "Vous devez être connecté pour retirer une offre de vos favoris.";
             return $response->withHeader('Location', '/login')->withStatus(302);
@@ -1194,10 +1216,7 @@ $app->post('/rate-company', function (Request $request, Response $response) {
             $_SESSION['flash_error'] = "Une erreur est survenue lors de la suppression des favoris.";
         }
 
-        // Journaliser l'état de la session après l'opération
-        error_log("DEBUG: Session après la suppression des favoris : " . json_encode($_SESSION));
-
-        return $response->withHeader('Location', '/wishlist')->withStatus(302);
+        return $response->withHeader('Location', '/internships')->withStatus(302);
     });
 
     // Route GET : Afficher les offres likées par l'utilisateur
