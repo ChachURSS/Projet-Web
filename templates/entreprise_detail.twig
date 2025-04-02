@@ -49,7 +49,9 @@
         <div class="card mb-4 shadow-sm">
             <div class="row g-0">
                 <div class="col-md-4 d-flex justify-content-center align-items-center bg-light">
-                    <img src="{{ company.path_to_icon }}" alt="Logo de {{ company.name }}" class="img-fluid rounded shadow-sm" style="max-width: 200px; max-height: 200px; object-fit: contain;">
+                    {% if company.path_to_icon %}
+					<img src="{{ company.path_to_icon }}" alt="Logo de l'entreprise" class="img-fluid rounded shadow-sm" style="max-width: 200px; max-height: 200px; object-fit: contain;">
+					{% endif %}
                 </div>
                 <div class="col-md-8">
                     <div class="card-body">
