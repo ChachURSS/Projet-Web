@@ -25,6 +25,9 @@
             {% endif %}
         </p>
 
+        <!-- Ligne statistique -->
+        <p><strong>Présent dans {{ wishlist_count }} wishlist</strong> </p>
+
         <div class="d-flex justify-content-center mt-4 gap-2">
             <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
             <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">

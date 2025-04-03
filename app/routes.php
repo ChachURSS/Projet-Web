@@ -1302,6 +1302,18 @@ $app->post('/rate-company', function (Request $request, Response $response) {
             $internship['is_favorite'] = false;
         }
 
-        return $view->render($response, 'internship_detail.twig', ['internship' => $internship]);
+        // Compter le nombre d'ajouts à la wishlist
+        $stmtWishlistCount = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM favorite 
+            WHERE id_internship = :id_internship
+        ");
+        $stmtWishlistCount->execute([':id_internship' => $id_internship]);
+        $wishlistCount = $stmtWishlistCount->fetchColumn();
+
+        return $view->render($response, 'internship_detail.twig', [
+            'internship' => $internship,
+            'wishlist_count' => $wishlistCount
+        ]);
     });
 };
