@@ -64,14 +64,16 @@
                                     </form>
                                 {% endif %}
                                 {% if role != 1 %}
-                                <a href="/internships/apply/{{ internship.id_internship }}" class="btn btn-success btn-sm">Postuler</a>
-                                
-                                <form method="POST" action="/internships/{{ internship.id_internship }}{% if internship.is_favorite %}/unlike{% else %}/like{% endif %}" style="display:inline;">
-                                    <button type="submit" 
-                                            class="btn {% if internship.is_favorite %}btn-danger text-white{% else %}btn-outline-danger{% endif %} btn-sm">
-                                        {% if internship.is_favorite %}❤️ Retirer des favoris{% else %}❤️ Ajouter aux favoris{% endif %}
-                                    </button>
-                                </form>
+                                    <a href="/internships/apply/{{ internship.id_internship }}" 
+                                       class="btn btn-success btn-sm {% if internship.has_applied %}disabled{% endif %}">
+                                        Postuler
+                                    </a>
+                                    <form method="POST" action="/internships/{{ internship.id_internship }}{% if internship.is_favorite %}/unlike{% else %}/like{% endif %}" style="display:inline;">
+                                        <button type="submit" 
+                                                class="btn {% if internship.is_favorite %}btn-danger text-white{% else %}btn-outline-danger{% endif %} btn-sm">
+                                            {% if internship.is_favorite %}❤️ Retirer des favoris{% else %}❤️ Ajouter aux favoris{% endif %}
+                                        </button>
+                                    </form>
                                 {% endif %}
                             </td>
                         </tr>

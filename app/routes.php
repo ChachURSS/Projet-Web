@@ -924,8 +924,20 @@ return function (App $app) {
             $stmtTags->execute([':id_internship' => $internship['id_internship']]);
             $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
 
-            // Vérifier si l'utilisateur a ajouté ce stage à ses favoris
+            // Vérifier si l'utilisateur a déjà postulé à cette annonce
             if ($user_id) {
+                $stmtApplied = $pdo->prepare("
+                    SELECT 1 
+                    FROM candidate 
+                    WHERE id_user = :id_user AND id_internship = :id_internship
+                ");
+                $stmtApplied->execute([
+                    ':id_user' => $user_id,
+                    ':id_internship' => $internship['id_internship']
+                ]);
+                $internship['has_applied'] = (bool) $stmtApplied->fetchColumn();
+
+                // Vérifier si l'utilisateur a ajouté cette annonce à ses favoris
                 $stmtFavorite = $pdo->prepare("
                     SELECT 1 
                     FROM favorite 
@@ -937,6 +949,7 @@ return function (App $app) {
                 ]);
                 $internship['is_favorite'] = (bool) $stmtFavorite->fetchColumn();
             } else {
+                $internship['has_applied'] = false;
                 $internship['is_favorite'] = false;
             }
         }
@@ -1454,9 +1467,21 @@ $app->post('/rate-company', function (Request $request, Response $response) {
         $stmtTags->execute([':id_internship' => $id_internship]);
         $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
 
-        // Vérifier si l'utilisateur a ajouté ce stage à ses favoris
+        // Vérifier si l'utilisateur a déjà postulé à cette annonce
         $user_id = $_SESSION['user_id'] ?? null;
         if ($user_id) {
+            $stmtApplied = $pdo->prepare("
+                SELECT 1 
+                FROM candidate 
+                WHERE id_user = :id_user AND id_internship = :id_internship
+            ");
+            $stmtApplied->execute([
+                ':id_user' => $user_id,
+                ':id_internship' => $id_internship
+            ]);
+            $internship['has_applied'] = (bool) $stmtApplied->fetchColumn();
+
+            // Vérifier si l'utilisateur a ajouté cette annonce à ses favoris
             $stmtFavorite = $pdo->prepare("
                 SELECT 1 
                 FROM favorite 
@@ -1468,21 +1493,12 @@ $app->post('/rate-company', function (Request $request, Response $response) {
             ]);
             $internship['is_favorite'] = (bool) $stmtFavorite->fetchColumn();
         } else {
+            $internship['has_applied'] = false;
             $internship['is_favorite'] = false;
         }
 
-        // Compter le nombre d'ajouts à la wishlist
-        $stmtWishlistCount = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM favorite 
-            WHERE id_internship = :id_internship
-        ");
-        $stmtWishlistCount->execute([':id_internship' => $id_internship]);
-        $wishlistCount = $stmtWishlistCount->fetchColumn();
-
         return $view->render($response, 'internship_detail.twig', [
             'internship' => $internship,
-            'wishlist_count' => $wishlistCount,
             'role' => $role // Injecter le rôle dans Twig
         ]);
     });
