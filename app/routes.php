@@ -1285,6 +1285,23 @@ $app->post('/rate-company', function (Request $request, Response $response) {
         $stmtTags->execute([':id_internship' => $id_internship]);
         $internship['tags'] = $stmtTags->fetchAll(PDO::FETCH_COLUMN);
 
+        // Vérifier si l'utilisateur a ajouté ce stage à ses favoris
+        $user_id = $_SESSION['user_id'] ?? null;
+        if ($user_id) {
+            $stmtFavorite = $pdo->prepare("
+                SELECT 1 
+                FROM favorite 
+                WHERE id_user = :id_user AND id_internship = :id_internship
+            ");
+            $stmtFavorite->execute([
+                ':id_user' => $user_id,
+                ':id_internship' => $id_internship
+            ]);
+            $internship['is_favorite'] = (bool) $stmtFavorite->fetchColumn();
+        } else {
+            $internship['is_favorite'] = false;
+        }
+
         return $view->render($response, 'internship_detail.twig', ['internship' => $internship]);
     });
 };
