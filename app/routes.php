@@ -54,13 +54,12 @@ return function (App $app) {
     $app->get('/register', [AuthController::class, 'registerForm'])->setName('register');
     $app->post('/register', [\App\Controller\AuthController::class, 'register']);
 
-    $app->get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->setName('forgot-password');
+    //$app->get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->setName('forgot-password');
 
     $app->post('/login', function (Request $request, Response $response) {
         $pdo = $this->get(PDO::class);
         $data = $request->getParsedBody();
 
-        // Journaliser les données reçues
         error_log("DEBUG: Données reçues pour la connexion : " . json_encode($data));
 
         if (empty($data['email']) || empty($data['mdp'])) {
@@ -73,11 +72,9 @@ return function (App $app) {
         $user = $stmt->fetch();
 
         if ($user && password_verify($data['mdp'], $user['password'])) {
-            // Définir les variables de session
             $_SESSION['user_id'] = $user['id_user'];
             $_SESSION['token'] = $user['token'];
 
-            // Journaliser l'état de la session après connexion
             error_log("DEBUG: Session après connexion : " . json_encode($_SESSION));
 
             return $response->withHeader('Location', '/home')->withStatus(302);
@@ -86,6 +83,87 @@ return function (App $app) {
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
     });
+
+    $app->get('/forgot-password', function ($request, $response) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    
+        $view = $this->get(Slim\Views\Twig::class);
+    
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        $flash_success = $_SESSION['flash_success'] ?? null;
+    
+        unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+    
+        return $view->render($response, 'forgot_password.twig', [
+            'flash_error' => $flash_error,
+            'flash_success' => $flash_success
+        ]);
+    });
+
+    $app->post('/forgot-password', function (Request $request, Response $response, $args) {
+        $pdo = $this->get(PDO::class);
+        $twig = $this->get(Twig::class);
+    
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    
+        $data = $request->getParsedBody();
+        $email = trim($data['email'] ?? '');
+        $message = null;
+        $messageType = null;
+    
+        if (!empty($email)) {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE mail = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+            if ($user) {
+                $tempPassword = bin2hex(random_bytes(4));
+                $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
+    
+                $stmt = $pdo->prepare("UPDATE users SET password = :password WHERE id_user = :id_user");
+                $stmt->execute([
+                    'password' => $hashedPassword,
+                    'id_user' => $user['id_user']
+                ]);
+    
+                $to = $email;
+                $subject = "Réinitialisation de mot de passe EasyStage";
+                $body = "Bonjour,\n\nVoici votre mot de passe temporaire : $tempPassword\n\nConnectez-vous et changez-le dès que possible.\n\nCordialement,\nL'équipe EasyStage";
+                $headers = "From: noreply@easystage.local";
+    
+                
+                $logPath = __DIR__ . '/../logs/mail.log';
+                $logContent = "To: $to\nSubject: $subject\nHeaders: $headers\n\n$body\n\n------------------------\n";
+    
+                if (file_put_contents($logPath, $logContent, FILE_APPEND)) {
+                    $_SESSION['flash_success'] = "Un mot de passe temporaire a été généré et simulé (voir fichier log).";
+                } else {
+                    $_SESSION['flash_error'] = "Erreur lors de la simulation de l'envoi. Veuillez contacter un administrateur.";
+                }
+    
+                return $response
+                    ->withHeader('Location', '/forgot-password')
+                    ->withStatus(302);
+            } else {
+                $message = "Aucun compte associé à cette adresse email.";
+                $messageType = "error";
+            }
+        } else {
+            $message = "Veuillez entrer une adresse email.";
+            $messageType = "error";
+        }
+    
+        return $twig->render($response, 'forgot_password.twig', [
+            'flash_error' => $messageType === 'error' ? $message : null,
+            'flash_success' => $messageType === 'success' ? $message : null
+        ]);
+    });
+    
+    
 
     $app->get('/logout', function ($request, $response) {
         session_destroy();
