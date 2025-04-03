@@ -57,18 +57,22 @@
                                 {% endif %}
                             </td>
                             <td>
-                                
-                                <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
-                                <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
-                                </form>
+                                {% if role in [0,1] %}
+                                    <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
+                                    <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
+                                    </form>
+                                {% endif %}
+                                {% if role != 1 %}
                                 <a href="/internships/apply/{{ internship.id_internship }}" class="btn btn-success btn-sm">Postuler</a>
+                                
                                 <form method="POST" action="/internships/{{ internship.id_internship }}{% if internship.is_favorite %}/unlike{% else %}/like{% endif %}" style="display:inline;">
                                     <button type="submit" 
                                             class="btn {% if internship.is_favorite %}btn-danger text-white{% else %}btn-outline-danger{% endif %} btn-sm">
                                         {% if internship.is_favorite %}❤️ Retirer des favoris{% else %}❤️ Ajouter aux favoris{% endif %}
                                     </button>
                                 </form>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -86,9 +90,12 @@
     </div>
 
     <!-- Bouton circulaire bleu -->
-    <a href="/internships/add" class="btn btn-primary rounded-circle position-fixed" style="bottom: 20px; right: 20px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-        +
-    </a>
+    {% if role in [0,1] %}
+        <a href="/internships/add" class="btn btn-primary rounded-circle position-fixed" style="bottom: 20px; right: 20px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+            +
+        </a>
+    {% endif %}
+
 {% endblock %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

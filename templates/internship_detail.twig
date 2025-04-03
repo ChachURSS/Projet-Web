@@ -29,17 +29,23 @@
         <p><strong>Présent dans {{ wishlist_count }} wishlist</strong> </p>
 
         <div class="d-flex justify-content-center mt-4 gap-2">
-            <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
-            <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
-            </form>
-            <a href="/internships/apply/{{ internship.id_internship }}" class="btn btn-success btn-sm">Postuler</a>
+            {% if role in [0, 1] %}
+                <a href="/internships/edit/{{ internship.id_internship }}" class="btn btn-warning btn-sm">Modifier</a>
+                <form method="POST" action="/internships/delete/{{ internship.id_internship }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')">Supprimer</button>
+                </form>
+            {% endif %}
+            {% if role != 1 %}
+                <a href="/internships/apply/{{ internship.id_internship }}" class="btn btn-success btn-sm">Postuler</a>
+
             <form method="POST" action="/internships/{{ internship.id_internship }}{% if internship.is_favorite %}/unlike{% else %}/like{% endif %}" style="display:inline;">
                 <button type="submit" 
                         class="btn {% if internship.is_favorite %}btn-danger text-white{% else %}btn-outline-danger{% endif %} btn-sm">
                     {% if internship.is_favorite %}❤️ Retirer des favoris{% else %}❤️ Ajouter aux favoris{% endif %}
                 </button>
             </form>
+            {% endif %}
+
         </div>
     </div>
 {% endblock %}
