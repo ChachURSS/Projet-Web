@@ -99,7 +99,7 @@ class AuthController
         $password = $data['mdp'] ?? '';
 
         if (!$email || !$password) {
-            $_SESSION['flash_error_login'] = 'Tous les champs sont requis.';
+            $_SESSION['flash_error'] = 'Tous les champs sont requis.';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
@@ -119,7 +119,7 @@ class AuthController
             return $response->withHeader('Location', '/home')->withStatus(302);
         }
 
-        $_SESSION['flash_error_login'] = "Identifiants incorrects.";
+        $_SESSION['flash_error'] = "Identifiants incorrects.";
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 }

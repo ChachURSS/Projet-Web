@@ -67,25 +67,52 @@ return function (App $app) {
     $app->get('/stages', [StageController::class, 'list']);
 
     //$app->get('/login', [AuthController::class, 'loginForm'])->setName('login');
-    $app->get('/login', function ($request, $response) {
+    $app->get('/login', function ($request, $response, $args) {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
     
-        $twig = $this->get(Slim\Views\Twig::class);
+        $view = $this->get(Slim\Views\Twig::class);
     
-        $flashError = $_SESSION['flash_error_login'] ?? null;
-        $flashSuccess = $_SESSION['flash_success_login'] ?? null;
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        $flash_success = $_SESSION['flash_success'] ?? null;
     
-        unset($_SESSION['flash_error_login'], $_SESSION['flash_success_login']);
+        unset($_SESSION['flash_error'], $_SESSION['flash_success']);
     
-        return $twig->render($response, 'login.twig', [
-            'flash_error_login' => $flashError,
-            'flash_success_login' => $flashSuccess
+        return $view->render($response, 'login.twig', [
+            'flash_error' => $flash_error,
+            'flash_success_login' => $flash_success
         ]);
     });
+
+    $app->post('/login', function (Request $request, Response $response) {
+        if (session_status() === PHP_SESSION_NONE) session_start();
     
+        $pdo = $this->get(PDO::class);
+        $data = $request->getParsedBody();
     
+        if (empty($data['email']) || empty($data['mdp'])) {
+            $_SESSION['flash_error'] = "Veuillez remplir tous les champs.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+    
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE mail = :mail");
+        $stmt->execute(['mail' => $data['email']]);
+        $user = $stmt->fetch();
+    
+        if ($user && password_verify($data['mdp'], $user['password'])) {
+            $_SESSION['user_id'] = $user['id_user'];
+            $_SESSION['token'] = $user['token'];
+            $_SESSION['role'] = $user['role'];
+    
+            return $response->withHeader('Location', '/home')->withStatus(302);
+        } else {
+            $_SESSION['flash_error'] = "Identifiants incorrects.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+    });
+    
+
 
     //$app->get('/register', [AuthController::class, 'registerForm'])->setName('register');
     $app->get('/register', function ($request, $response) {
@@ -107,37 +134,6 @@ return function (App $app) {
     });
 
     $app->post('/register', [\App\Controller\AuthController::class, 'register']);
-
-    $app->post('/login', function (Request $request, Response $response) {
-        $pdo = $this->get(PDO::class);
-        $data = $request->getParsedBody();
-
-        error_log("DEBUG: Données reçues pour la connexion : " . json_encode($data));
-
-        if (empty($data['email']) || empty($data['mdp'])) {
-            $_SESSION['flash_error'] = "Veuillez remplir tous les champs.";
-            return $response->withHeader('Location', '/login')->withStatus(302);
-        }
-
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE mail = :mail");
-        $stmt->execute([':mail' => $data['email']]);
-        $user = $stmt->fetch();
-
-        unset($_SESSION['flash_error'], $_SESSION['flash_success']);
-
-        if ($user && password_verify($data['mdp'], $user['password'])) {
-            $_SESSION['user_id'] = $user['id_user'];
-            $_SESSION['token'] = $user['token'];
-            $_SESSION['role'] = $user['role'];
-
-            error_log("DEBUG: Rôle utilisateur après connexion : " . $_SESSION['role']);
-
-            return $response->withHeader('Location', '/home')->withStatus(302);
-        } else {
-            $_SESSION['flash_error'] = "Identifiants incorrects.";
-            return $response->withHeader('Location', '/login')->withStatus(302);
-        }
-    });
 
     $app->get('/forgot-password', function ($request, $response) {
         if (session_status() === PHP_SESSION_NONE) {
