@@ -12,6 +12,22 @@ use App\Middleware\AuthMiddleware;
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+error_log("DEBUG: Contenu de la session : " . json_encode($_SESSION));
+
+/**
+ * Fonction pour récupérer le rôle de l'utilisateur depuis la base de données.
+ */
+function getUserRole(PDO $pdo, string $token): ?int {
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE token = :token");
+    $stmt->execute([':token' => $token]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
+        return (int)$user['role'];
+    }
+
+    return null; // Retourne null si aucun utilisateur n'est trouvé
+}
 
 return function (App $app) {
     $app->get('/', function (Request $request, Response $response, $args) {
@@ -110,8 +126,10 @@ return function (App $app) {
         if ($user && password_verify($data['mdp'], $user['password'])) {
             $_SESSION['user_id'] = $user['id_user'];
             $_SESSION['token'] = $user['token'];
+            $_SESSION['role'] = $user['role']; // Assurez-vous que cette ligne est présente
 
-            error_log("DEBUG: Session après connexion : " . json_encode($_SESSION));
+            // Journaliser le rôle pour déboguer
+            error_log("DEBUG: Rôle utilisateur après connexion : " . $_SESSION['role']);
 
             return $response->withHeader('Location', '/home')->withStatus(302);
         } else {
@@ -867,13 +885,26 @@ return function (App $app) {
         $queryParams = $request->getQueryParams();
         $search = trim($queryParams['search'] ?? '');
 
+        // Récupérer le rôle de l'utilisateur
+        $role = null;
+        if (isset($_SESSION['token'])) {
+            $role = getUserRole($pdo, $_SESSION['token']);
+        }
+
         $sql = "
             SELECT internships.*, companies.name AS company_name 
             FROM internships 
             JOIN companies ON internships.id_company = companies.id_company 
-            WHERE internships.title LIKE :search1 OR internships.description LIKE :search2 OR companies.name LIKE :search3
-            ORDER BY bdate DESC
+            WHERE (internships.title LIKE :search1 OR internships.description LIKE :search2 OR companies.name LIKE :search3)
         ";
+
+        // Ajouter une condition pour exclure les offres indisponibles si le rôle est 2
+        if ($role === 2) {
+            $sql .= " AND internships.status = 1";
+        }
+
+        $sql .= " ORDER BY bdate DESC";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':search1' => '%' . $search . '%',
@@ -911,7 +942,8 @@ return function (App $app) {
 
         return $view->render($response, 'internships.twig', [
             'internships' => $internships,
-            'search' => $search
+            'search' => $search,
+            'role' => $role // Injecter le rôle dans Twig
         ]);
     });
 
@@ -1387,14 +1419,26 @@ $app->post('/rate-company', function (Request $request, Response $response) {
         $view = Twig::fromRequest($request);
         $id_internship = (int)$args['id'];
 
+        // Récupérer le rôle de l'utilisateur
+        $role = null;
+        if (isset($_SESSION['token'])) {
+            $role = getUserRole($pdo, $_SESSION['token']);
+        }
+
         $stmt = $pdo->prepare("
             SELECT internships.*, companies.name AS company_name 
             FROM internships 
             JOIN companies ON internships.id_company = companies.id_company 
             WHERE internships.id_internship = :id
         ");
+
         $stmt->execute([':id' => $id_internship]);
         $internship = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Si le rôle est 2 et le statut est 0, rediriger vers la liste des stages
+        if ($role === 2 && $internship['status'] == 0) {
+            return $response->withHeader('Location', '/internships')->withStatus(302);
+        }
 
         if (!$internship) {
             return $response->withHeader('Location', '/internships')->withStatus(404);
@@ -1437,7 +1481,27 @@ $app->post('/rate-company', function (Request $request, Response $response) {
 
         return $view->render($response, 'internship_detail.twig', [
             'internship' => $internship,
-            'wishlist_count' => $wishlistCount
+            'wishlist_count' => $wishlistCount,
+            'role' => $role // Injecter le rôle dans Twig
         ]);
+    });
+
+    // Exemple d'utilisation de la fonction getUserRole dans une route
+    $app->get('/test-role', function (Request $request, Response $response) {
+        $pdo = $this->get(PDO::class);
+
+        if (!isset($_SESSION['token'])) {
+            $response->getBody()->write("Token non défini dans la session.");
+            return $response->withStatus(400);
+        }
+
+        $role = getUserRole($pdo, $_SESSION['token']);
+        if ($role !== null) {
+            $response->getBody()->write("Le rôle de l'utilisateur est : $role");
+        } else {
+            $response->getBody()->write("Utilisateur non trouvé ou rôle non défini.");
+        }
+
+        return $response;
     });
 };
