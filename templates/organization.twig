@@ -44,9 +44,15 @@
     {% include "navbar.twig" %}
 
     <div class="container mt-5">
-        {% if session.flash_error %}
+        {% if flash_error %}
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session.flash_error }}
+                {{ flash_error }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+        {% if flash_success %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ flash_success }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endif %}
@@ -56,7 +62,6 @@
                 <div class="col-md-4 d-flex justify-content-center align-items-center bg-light">
                     <img src="{{ organization.path_to_icon ?: '/assets/logo/cats.png' }}"
                     onerror="this.onerror=null; this.src='/assets/logo/cats.png';"
-                    alt="Logo de l'organisation"
                     class="rounded-circle shadow-sm"
                     style="width: 200px; height: 200px; object-fit: cover; object-position: center;">
                 </div>

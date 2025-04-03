@@ -27,6 +27,10 @@ class AuthController
 
     public function register(Request $request, Response $response): Response
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $data = $request->getParsedBody();
 
         $organizationName = trim($data['organisation'] ?? '');
@@ -36,9 +40,8 @@ class AuthController
         $password = trim($data['mdp'] ?? '');
 
         if (!$organizationName || !$lastName || !$firstName || !$email || !$password) {
-            return $this->twig->render($response, 'register.twig', [
-                'error' => 'Tous les champs sont requis.'
-            ]);
+            $_SESSION['flash_error_register'] = 'Tous les champs sont requis.';
+            return $response->withHeader('Location', '/register')->withStatus(302);
         }
 
         $pdo = new \PDO(
@@ -47,43 +50,58 @@ class AuthController
             $_ENV['DB_PASS']
         );
 
-        // Création de l'organisation
-        $stmtOrg = $pdo->prepare("INSERT INTO organizations (name, description) VALUES (:name, '')");
-        $stmtOrg->execute(['name' => $organizationName]);
-        $orgId = $pdo->lastInsertId();
+        try {
+            $stmtOrg = $pdo->prepare("INSERT INTO organizations (name, description) VALUES (:name, '')");
+            $stmtOrg->execute(['name' => $organizationName]);
+            $orgId = $pdo->lastInsertId();
 
-        // Hachage du mot de passe et génération du token
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $token = bin2hex(random_bytes(25)); // 50 caractères
-        $role = 0; // 0 = admin
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $token = bin2hex(random_bytes(25));
+            $role = 0;
 
-        // Insertion dans users
-        $stmtUser = $pdo->prepare("
-            INSERT INTO users (token, mail, password, name, last_name, role, id_organization)
-            VALUES (:token, :mail, :password, :name, :last_name, :role, :id_organization)
-        ");
+            $stmtUser = $pdo->prepare("
+                INSERT INTO users (token, mail, password, name, last_name, role, id_organization)
+                VALUES (:token, :mail, :password, :name, :last_name, :role, :id_organization)
+            ");
 
-        $stmtUser->execute([
-            'token' => $token,
-            'mail' => $email,
-            'password' => $hashedPassword,
-            'name' => $firstName,
-            'last_name' => $lastName,
-            'role' => $role,
-            'id_organization' => $orgId
-        ]);
+            $stmtUser->execute([
+                'token' => $token,
+                'mail' => $email,
+                'password' => $hashedPassword,
+                'name' => $firstName,
+                'last_name' => $lastName,
+                'role' => $role,
+                'id_organization' => $orgId
+            ]);
 
-        // Stocker le token dans la session
-        $_SESSION['token'] = $token;
+            $_SESSION['flash_success_login'] = "Compte créé avec succès. Connectez-vous.";
+            return $response->withHeader('Location', '/login')->withStatus(302);
 
-        return $response->withHeader('Location', '/home')->withStatus(302);
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                $_SESSION['flash_error_register'] = "Cette adresse email est déjà utilisée.";
+            } else {
+                $_SESSION['flash_error_register'] = "Une erreur est survenue. Veuillez réessayer.";
+            }
+
+            return $response->withHeader('Location', '/register')->withStatus(302);
+        }
     }
 
     public function login(Request $request, Response $response): Response
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $data = $request->getParsedBody();
         $email = $data['email'] ?? '';
         $password = $data['mdp'] ?? '';
+
+        if (!$email || !$password) {
+            $_SESSION['flash_error_login'] = 'Tous les champs sont requis.';
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
 
         $pdo = new \PDO(
             "mysql:host={$_ENV['DB_HOST']};port=3306;dbname={$_ENV['DB_NAME']};charset=utf8mb4",
@@ -96,14 +114,12 @@ class AuthController
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
-            // Authentification réussie, stocker le token
             $_SESSION['token'] = $user['token'];
 
             return $response->withHeader('Location', '/home')->withStatus(302);
         }
 
-        return $this->twig->render($response, 'login.twig', [
-            'error' => 'Identifiants incorrects.'
-        ]);
+        $_SESSION['flash_error_login'] = "Identifiants incorrects.";
+        return $response->withHeader('Location', '/login')->withStatus(302);
     }
 }

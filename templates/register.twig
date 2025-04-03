@@ -8,9 +8,18 @@
 <body class="bg-light d-flex align-items-center justify-content-center vh-100">
     <div class="card shadow p-4" style="width: 100%; max-width: 500px;">
         <h3 class="text-center mb-4">Créer une organisation</h3>
-        {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
+        {% if flash_error_register %}
+            <div class="alert alert-danger">
+                {{ flash_error_register }}
+            </div>
         {% endif %}
+
+        {% if flash_success_register %}
+            <div class="alert alert-success">
+                {{ flash_success_register }}
+            </div>
+        {% endif %}
+
         <form method="POST" action="/register">
             <div class="mb-3">
                 <label class="form-label">Nom de l'organisation</label>

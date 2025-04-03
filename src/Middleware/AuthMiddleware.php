@@ -11,10 +11,29 @@ class AuthMiddleware
 {
     public function __invoke(Request $request, Handler $handler): ResponseInterface
     {
-        $uri = $request->getUri()->getPath();
-        $excludedPaths = ['/login', '/register', '/forgot-password'];
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
-        if (!isset($_SESSION['token']) && !in_array($uri, $excludedPaths)) {
+        $uri = $request->getUri()->getPath();
+        $method = $request->getMethod();
+
+        $excludedRoutes = [
+            ['GET', '/login'],
+            ['POST', '/login'],
+            ['GET', '/register'],
+            ['POST', '/register'],
+            ['GET', '/forgot-password'],
+            ['POST', '/forgot-password']
+        ];
+
+        foreach ($excludedRoutes as [$excludedMethod, $excludedPath]) {
+            if ($method === $excludedMethod && $uri === $excludedPath) {
+                return $handler->handle($request);
+            }
+        }
+
+        if (!isset($_SESSION['token'])) {
             return (new Response())->withHeader('Location', '/login')->withStatus(302);
         }
 

@@ -50,11 +50,47 @@ return function (App $app) {
 
     $app->get('/stages', [StageController::class, 'list']);
 
-    $app->get('/login', [AuthController::class, 'loginForm'])->setName('login');
-    $app->get('/register', [AuthController::class, 'registerForm'])->setName('register');
-    $app->post('/register', [\App\Controller\AuthController::class, 'register']);
+    //$app->get('/login', [AuthController::class, 'loginForm'])->setName('login');
+    $app->get('/login', function ($request, $response) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    
+        $twig = $this->get(Slim\Views\Twig::class);
+    
+        $flashError = $_SESSION['flash_error_login'] ?? null;
+        $flashSuccess = $_SESSION['flash_success_login'] ?? null;
+    
+        unset($_SESSION['flash_error_login'], $_SESSION['flash_success_login']);
+    
+        return $twig->render($response, 'login.twig', [
+            'flash_error_login' => $flashError,
+            'flash_success_login' => $flashSuccess
+        ]);
+    });
+    
+    
 
-    //$app->get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->setName('forgot-password');
+    //$app->get('/register', [AuthController::class, 'registerForm'])->setName('register');
+    $app->get('/register', function ($request, $response) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    
+        $twig = $this->get(Slim\Views\Twig::class);
+    
+        $flashError = $_SESSION['flash_error_register'] ?? null;
+        $flashSuccess = $_SESSION['flash_success_register'] ?? null;
+    
+        unset($_SESSION['flash_error_register'], $_SESSION['flash_success_register']);
+    
+        return $twig->render($response, 'register.twig', [
+            'flash_error_register' => $flashError,
+            'flash_success_register' => $flashSuccess
+        ]);
+    });
+
+    $app->post('/register', [\App\Controller\AuthController::class, 'register']);
 
     $app->post('/login', function (Request $request, Response $response) {
         $pdo = $this->get(PDO::class);
@@ -180,7 +216,9 @@ return function (App $app) {
         $view = $this->get(Slim\Views\Twig::class);
     
         $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
+
         $stmt->execute(['token' => $_SESSION['token']]);
+        
         $currentUser = $stmt->fetch();
     
         if (!$currentUser) {
@@ -212,13 +250,20 @@ return function (App $app) {
         $stmt = $pdo->prepare("SELECT * FROM organizations WHERE id_organization = :id");
         $stmt->execute(['id' => $id_organization]);
         $organization = $stmt->fetch();
+
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        $flash_success = $_SESSION['flash_success'] ?? null;
+
+        unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+
     
         return $view->render($response, 'organization.twig', [
             'organization' => $organization,
             'members' => $members,
             'role' => $role,
             'current_user_id' => $current_user_id,
-            'session' => $_SESSION
+            'flash_error' => $flash_error,
+            'flash_success' => $flash_success
         ]);
     });
 
@@ -278,8 +323,9 @@ return function (App $app) {
             'current_user_id' => $current['id_user'],
             'session' => $_SESSION
         ]);
-    
+        
         unset($_SESSION['flash_error']);
+        
         return $response;
     });
 
