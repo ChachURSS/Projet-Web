@@ -99,58 +99,48 @@ return function (App $app) {
 
     $app->get('/organization', function ($request, $response, $args) {
         $pdo = $this->get(PDO::class);
-        $view = Twig::fromRequest($request);
-
-        // Vérification de la session utilisateur
-        if (!isset($_SESSION['token'])) {
-            error_log("DEBUG: Aucun token trouvé dans la session.");
-            return $response->withHeader('Location', '/login')->withStatus(302);
-        }
-
+        $view = $this->get(Slim\Views\Twig::class);
+    
         $stmt = $pdo->prepare("SELECT * FROM users WHERE token = :token");
         $stmt->execute(['token' => $_SESSION['token']]);
-        $user = $stmt->fetch();
-
-        if (!$user) {
-            error_log("DEBUG: Aucun utilisateur trouvé avec le token : " . $_SESSION['token']);
+        $currentUser = $stmt->fetch();
+    
+        if (!$currentUser) {
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
-
-        $stmtOrg = $pdo->prepare("SELECT * FROM organizations WHERE id_organization = :id");
-        $stmtOrg->execute(['id' => $user['id_organization']]);
-        $organization = $stmtOrg->fetch();
-
-        if (!$organization) {
-            error_log("DEBUG: Aucune organisation trouvée pour l'utilisateur.");
-            return $response->withHeader('Location', '/login')->withStatus(302);
-        }
-
-        if ($user['role'] == 0) {
-            $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
-            $stmtMembers->execute(['org' => $user['id_organization']]);
-        } elseif ($user['role'] == 1) {
-            $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org AND (role = 2 OR id_user = :self)");
-            $stmtMembers->execute([
-                'org' => $user['id_organization'],
-                'self' => $user['id_user']
-            ]);
+    
+        $role = $currentUser['role'];
+        $id_organization = $currentUser['id_organization'];
+        $current_user_id = $currentUser['id_user'];
+    
+        if ($role == 0) {
+            
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
+            $stmt->execute(['org' => $id_organization]);
+        } elseif ($role == 1) {
+            
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org AND (role = 2 OR id_user = :me)");
+            $stmt->execute(['org' => $id_organization, 'me' => $current_user_id]);
+        } elseif ($role == 2) {
+            
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE id_user = :me");
+            $stmt->execute(['me' => $current_user_id]);
         } else {
-            $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_user = :self AND id_organization = :org");
-            $stmtMembers->execute([
-                'self' => $user['id_user'],
-                'org' => $user['id_organization']
-            ]);
+            return $response->withHeader('Location', '/login')->withStatus(302);
         }
+    
+        $members = $stmt->fetchAll();
 
-        $stmtMembers = $pdo->prepare("SELECT * FROM users WHERE id_organization = :org");
-        $stmtMembers->execute(['org' => $user['id_organization']]);
-        $members = $stmtMembers->fetchAll();
-
+        $stmt = $pdo->prepare("SELECT * FROM organizations WHERE id_organization = :id");
+        $stmt->execute(['id' => $id_organization]);
+        $organization = $stmt->fetch();
+    
         return $view->render($response, 'organization.twig', [
             'organization' => $organization,
-            'role' => $user['role'],
             'members' => $members,
-            'current_user_id' => $user['id_user']
+            'role' => $role,
+            'current_user_id' => $current_user_id,
+            'session' => $_SESSION
         ]);
     });
 

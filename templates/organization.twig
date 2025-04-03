@@ -80,7 +80,6 @@
         </div>
 
         {% if role in [0, 1] %}
-
         <div class="accordion mb-4" id="accordionAddMember">
             <div class="accordion-item">
                 <h2 class="accordion-header" id="headingAdd">
@@ -135,13 +134,14 @@
                 <h5 class="mb-0">Membres de l'organisation</h5>
                 <div class="d-flex gap-2">
                     <input type="text" class="form-control" id="searchInput" placeholder="Rechercher...">
-                    <select id="roleFilter" class="form-select">
+                    <select id="roleFilter" class="form-select" {% if role == 2 %}disabled{% endif %}>
                         <option value="">Tous</option>
                         {% if role == 0 %}
                             <option value="admin">Admin</option>
                             <option value="pilote">Pilote</option>
                             <option value="eleve">Élève</option>
                         {% elseif role == 1 %}
+                            <option value="pilote">Pilote</option>
                             <option value="eleve">Élève</option>
                         {% elseif role == 2 %}
                             <option value="eleve">Élève</option>
