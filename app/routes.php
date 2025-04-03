@@ -123,12 +123,13 @@ return function (App $app) {
         $stmt->execute([':mail' => $data['email']]);
         $user = $stmt->fetch();
 
+        unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+
         if ($user && password_verify($data['mdp'], $user['password'])) {
             $_SESSION['user_id'] = $user['id_user'];
             $_SESSION['token'] = $user['token'];
-            $_SESSION['role'] = $user['role']; // Assurez-vous que cette ligne est présente
+            $_SESSION['role'] = $user['role'];
 
-            // Journaliser le rôle pour déboguer
             error_log("DEBUG: Rôle utilisateur après connexion : " . $_SESSION['role']);
 
             return $response->withHeader('Location', '/home')->withStatus(302);
