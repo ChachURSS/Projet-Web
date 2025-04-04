@@ -1509,9 +1509,29 @@ $app->post('/rate-company', function (Request $request, Response $response) {
             $internship['is_favorite'] = false;
         }
 
+        // Compter le nombre d'ajouts dans les wishlists
+        $stmtWishlistCount = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM favorite 
+            WHERE id_internship = :id_internship
+        ");
+        $stmtWishlistCount->execute([':id_internship' => $id_internship]);
+        $wishlist_count = $stmtWishlistCount->fetchColumn();
+
+        // Compter le nombre de candidatures
+        $stmtApplicationCount = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM candidate 
+            WHERE id_internship = :id_internship
+        ");
+        $stmtApplicationCount->execute([':id_internship' => $id_internship]);
+        $application_count = $stmtApplicationCount->fetchColumn();
+
         return $view->render($response, 'internship_detail.twig', [
             'internship' => $internship,
-            'role' => $role // Injecter le rôle dans Twig
+            'role' => $role, // Injecter le rôle dans Twig
+            'wishlist_count' => $wishlist_count,
+            'application_count' => $application_count // Injecter le nombre de candidatures
         ]);
     });
 
