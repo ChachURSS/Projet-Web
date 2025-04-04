@@ -449,7 +449,11 @@ return function (App $app) {
         $stmt->execute(['token' => $_SESSION['token']]);
         $current = $stmt->fetch();
     
-        if (!$current || $current['role'] != 0 || $current['id_user'] == $id_user) {
+        if (!$current) {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+    
+        if ($current['id_user'] == $id_user) {
             return $response->withHeader('Location', '/organization')->withStatus(403);
         }
     
@@ -461,11 +465,24 @@ return function (App $app) {
             return $response->withHeader('Location', '/organization')->withStatus(302);
         }
     
+        $canDelete = false;
+    
+        if ($current['role'] == 0) {
+            $canDelete = true;
+        } elseif ($current['role'] == 1 && $target['role'] == 2) {
+            $canDelete = true;
+        }
+    
+        if (!$canDelete) {
+            return $response->withHeader('Location', '/organization')->withStatus(403);
+        }
+    
         $stmtDel = $pdo->prepare("DELETE FROM users WHERE id_user = :id_user");
         $stmtDel->execute(['id_user' => $id_user]);
     
         return $response->withHeader('Location', '/organization')->withStatus(302);
     });
+    
     
     $app->get('/organization/logo/{filename}', function ($request, $response, $args) {
         $filename = basename($args['filename']);
@@ -568,7 +585,6 @@ return function (App $app) {
             return $response->withHeader('Location', '/organization')->withStatus(403);
         }
     
-        // Vérifie si l'email est déjà utilisé
         $check = $pdo->prepare("SELECT id_user FROM users WHERE mail = :mail");
         $check->execute(['mail' => trim($data['mail'])]);
         if ($check->fetch()) {
