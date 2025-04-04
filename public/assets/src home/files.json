@@ -1,25 +1,8 @@
 {
     "files": [
+        { "type": "image", "src": "/assets/src home/carousel/anass.jpg", "alt": "anass" },
+        { "type": "image", "src": "/assets/src home/carousel/jhon.jpg", "alt": "jhon" },
         { "type": "image", "src": "/assets/src home/carousel/grandfrere.png", "alt": "grandfrere" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_0sJ60.jpeg", "alt": "makeitmeme_0sJ60" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_0VJiQ.jpeg", "alt": "makeitmeme_0ViQ" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_2fJFv.jpeg", "alt": "makeitmeme_2FlFv" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_bFuLY.jpeg", "alt": "makeitmeme_bFuLY" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_foUeH.jpeg", "alt": "makeitmeme_foUeH" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_kyQUa.gif", "alt": "makeitmeme_kyQUa" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_MVWI9.jpeg", "alt": "makeitmeme_MVWI9" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_oRzIw.gif", "alt": "makeitmeme_0Rzlw" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_prbKn.gif", "alt": "makeitmeme_prbKn" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_t74si.gif", "alt": "makeitmeme_t745n" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_wiBuy.jpeg", "alt": "makeitmeme_wiBuy" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_X3i6X.gif", "alt": "makeitmeme_X3i6X" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_xeJnr.gif", "alt": "makeitmeme_xeJnr" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_Xk0Ib.gif", "alt": "makeitmeme_Xk0lb" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_xqrtw.jpeg", "alt": "makeitmeme_xqrtw" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_y5Uw5.jpeg", "alt": "makeitmeme_y5Uw5" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_yeJ3t.jpeg", "alt": "makeitmeme_yV3tB" },
-        { "type": "image", "src": "/assets/src home/carousel/makeitmeme_zZgQo.jpeg", "alt": "makeitmeme_ZzGQo" },
-        { "type": "image", "src": "/assets/src home/carousel/nike pro max.jpg", "alt": "nike pro max" },
-        { "type": "image", "src": "/assets/src home/carousel/terreur_nocturne.png", "alt": "terreur_nocturne" }
+        { "type": "image", "src": "/assets/src home/carousel/nike pro max.jpg", "alt": "nike pro max" }
     ]
 }
