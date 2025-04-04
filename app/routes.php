@@ -1317,7 +1317,9 @@ $app->post('/rate-company', function (Request $request, Response $response) {
                 ':etat_candidature' => 0 // 0 = En attente
             ]);
 
-            $_SESSION['flash_success'] = "Votre candidature a été envoyée avec succès.";
+            //$_SESSION['flash_success'] = "Votre candidature a été envoyée avec succès.";
+            unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+
             return $response->withHeader('Location', '/internships')->withStatus(302);
         } catch (PDOException $e) {
             error_log("Erreur SQL : " . $e->getMessage());
